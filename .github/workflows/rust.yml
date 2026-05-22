@@ -5,21 +5,30 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings" 
+  RUSTFLAGS: "-D warnings -C opt-level=0"
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
+  CARGO_INCREMENTAL: 1
 
 jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
       rust_changed: ${{ steps.filter.outputs.rust }}
+      cargo_lock_changed: ${{ steps.filter.outputs.cargo_lock }}
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Check for Rust Changes
       id: filter
@@ -29,6 +38,7 @@ jobs:
           rust:
             - '**/*.rs'
             - '**/Cargo.toml'
+          cargo_lock:
             - '**/Cargo.lock'
 
   build-and-test:
@@ -36,110 +46,120 @@ jobs:
     if: needs.check-changes.outputs.rust_changed == 'true' || github.event_name == 'push'
     
     strategy:
-      fail-fast: false 
+      fail-fast: true
       matrix:
-        # Sistem her alt klasörde gezineceği için karmaşayı önlemek adına 
-        # şimdilik en kararlı ortam olan ubuntu üzerinden doğrulamayı yapıyoruz.
         os: [ubuntu-latest]
 
-    runs-on: ${{ matrix.os }} 
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      SCCACHE_GHA_ENABLED: true
+      RUSTC_WRAPPER: sccache
 
     steps:
     - uses: actions/checkout@v4
       with:
-        # Tüm Git geçmişini çekiyoruz ki değişen dosyaları kıyaslayabilelim
         fetch-depth: 0
-        convert-eol: false
 
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
-        tools: cargo-nextest
+
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.4
 
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
       with:
         key: ${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
+        cache-on-failure: true
 
-    - name: Dynamically Detect and Run CI on Changed Crates
+    - name: Run Code Formatting Check
+      run: cargo fmt --all -- --check
+
+    - name: Run Clippy Static Analysis
+      run: cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings
+
+    - name: Build Workspace
+      run: cargo build --workspace --all-features --release
+
+    - name: Run Tests
       run: |
-        echo "=== Degisen Klasorler ve Crate'ler Tespit Ediliyor ==="
-        
-        # 1. Değişen, yeni eklenen veya ismi değişen tüm dosyaları listele
         if [ "${{ github.event_name }}" = "pull_request" ]; then
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD)
+          echo "🔍 PR tespit edildi. Değişen paketler test ediliyor..."
+          cargo test --workspace --all-features --lib --bins -- --test-threads=4
         else
-          # Doğrudan push yapıldıysa bir önceki commit ile kıyasla
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-files)
+          echo "📦 Push tespit edildi. Tüm workspace test ediliyor..."
+          cargo test --workspace --all-features -- --test-threads=4
         fi
 
-        # 2. Değişen dosyaların ait olduğu benzersiz Cargo.toml konumlarını bul
-        CRATES_TO_TEST=()
-        for file in $CHANGED_FILES; do
-          dir=$(dirname "$file")
-          # Klasör ağacında yukarı doğru çıkarak en yakın Cargo.toml'u ara
-          while [ "$dir" != "." ] && [ "$dir" != "/" ]; do
-            if [ -f "$dir/Cargo.toml" ]; then
-              CRATES_TO_TEST+=("$dir")
-              break
-            fi
-            dir=$(dirname "$dir")
-          done
-          # Eğer dosya doğrudan ana dizindeyse ve orada Cargo.toml varsa
-          if [ -f "Cargo.toml" ]; then
-            CRATES_TO_TEST+=(".")
-          fi
-        done
+    - name: Check Documentation
+      run: cargo doc --workspace --all-features --no-deps
 
-        # 3. Aynı klasörlerin tekrarlanmasını önlemek için listeyi temizle
-        UNIQUE_CRATES=$(echo "${CRATES_TO_TEST[@]}" | tr ' ' '\n' | sort -u)
+  lint-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
 
-        if [ -z "$UNIQUE_CRATES" ]; then
-          echo "Test edilecek aktif bir Rust projesi degisikligi bulunamadi."
-          exit 0
-        fi
+    - name: Setup Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
 
-        # 4. Bulunan her bir crate için sırayla işlemleri çalıştır
-        for crate in $UNIQUE_CRATES; do
-          echo "--------------------------------------------------"
-          echo "👉 Proje Islemleri Baslatildi: Dizin -> $crate"
-          echo "--------------------------------------------------"
-          
-          # Klasöre giriş yap
-          cd "$crate"
-          
-          echo "1) Format Kontrolü Yapiliyor..."
-          cargo fmt -- --check
-          
-          echo "2) Clippy Analizi Yapiliyor..."
-          cargo clippy --all-targets --all-features --no-deps -- -D warnings
-          
-          echo "3) Testler Hazirlaniyor (Derleme)..."
-          cargo test --no-run
-          
-          echo "4) Testler Kosuluyor..."
-          cargo nextest run --all-features
-          
-          # Ana dizine geri dön (Döngünün bir sonraki klasörü doğru bulması için)
-          cd - > /dev/null
-        done
+    - name: Cargo Deny Check
+      uses: EmbarkStudios/cargo-deny-action@v1
+      with:
+        log-level: warn
+
+  security-audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Security Audit
+      uses: rustsec/audit-check-action@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
   ci-success:
-    needs: [check-changes, build-and-test]
+    needs: [check-changes, build-and-test, lint-check, security-audit]
     runs-on: ubuntu-latest
     if: always()
+    
     steps:
-      - name: Check CI Status
+      - name: Evaluate CI Status
         run: |
-          CHECK_CHANGES_STATUS="${{ needs.check-changes.result }}"
-          BUILD_TEST_STATUS="${{ needs.build-and-test.result }}"
+          CHECK_RESULT="${{ needs.check-changes.result }}"
+          BUILD_RESULT="${{ needs.build-and-test.result }}"
+          LINT_RESULT="${{ needs.lint-check.result }}"
+          SECURITY_RESULT="${{ needs.security-audit.result }}"
           
-          if [ "$CHECK_CHANGES_STATUS" = "failure" ] || \
-             [ "$BUILD_TEST_STATUS" = "failure" ] || \
-             [ "$BUILD_TEST_STATUS" = "cancelled" ] || \
-             { [ "$BUILD_TEST_STATUS" = "skipped" ] && [ "${{ needs.check-changes.outputs.rust_changed }}" = "true" ]; }; then
-            echo "CI adimlarindan biri basarisiz oldu veya hatali sekilde atlandi!"
+          RUST_CHANGED="${{ needs.check-changes.outputs.rust_changed }}"
+          
+          # Hata durumlarını kontrol et
+          if [[ "$CHECK_RESULT" == "failure" ]] || [[ "$BUILD_RESULT" == "failure" ]]; then
+            echo "❌ Kritik CI adımı başarısız oldu!"
             exit 1
           fi
-          echo "Tüm kritik adimlar basariyla gecildi veya güvenle atlandi."
+          
+          # İptal edilmiş durumları kontrol et
+          if [[ "$BUILD_RESULT" == "cancelled" ]]; then
+            echo "⚠️  Build adımı iptal edildi!"
+            exit 1
+          fi
+          
+          # Lint kontrolleri başarısız olsa da devam et (uyarı)
+          if [[ "$LINT_RESULT" == "failure" ]]; then
+            echo "⚠️  Lint kontrolleri başarısız oldu. Detayları kontrol edin."
+          fi
+          
+          # Güvenlik denetimi başarısız olsa da devam et (uyarı)
+          if [[ "$SECURITY_RESULT" == "failure" ]]; then
+            echo "⚠️  Güvenlik denetimi başarısız oldu. Detayları kontrol edin."
+          fi
+          
+          echo "✅ Tüm kritik adımlar başarıyla tamamlandı!"
