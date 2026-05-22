@@ -1,22 +1,75 @@
-name: Rust
+name: Rust CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["**"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["**"]
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  CARGO_INCREMENTAL: 1
 
 jobs:
-  build:
-
+  ci:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Rust toolchain
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    # Cache (critical for speed)
+    - name: Cargo Cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    # Detect newly added files only
+    - name: Detect new files
+      id: diff
+      run: |
+        echo "Changed files:"
+        git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD > changes.txt || true
+        cat changes.txt
+
+        echo "new_rust_files=$(grep '\.rs$' changes.txt || true)" >> $GITHUB_OUTPUT
+
+    # Inspect ONLY new files (lightweight scan)
+    - name: Inspect new files
+      run: |
+        if [ -s changes.txt ]; then
+          echo "Checking newly added files..."
+          while read file; do
+            echo "→ $file"
+            test -f "$file" && head -n 200 "$file"
+          done < changes.txt
+        else
+          echo "No changes detected."
+        fi
+
+    # Build
     - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      run: cargo build --locked --all-features
+
+    # Install nextest (fast test runner)
+    - name: Install nextest
+      run: cargo install cargo-nextest --locked
+
+    - name: Test
+      run: cargo nextest run --locked --all-features
+
+    # Lint
+    - name: Clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    # Format
+    - name: Format
+      run: cargo fmt -- --check
