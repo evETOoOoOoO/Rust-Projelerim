@@ -1,0 +1,84 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings" 
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust_changed: ${{ steps.filter.outputs.rust }}
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check for Rust Changes
+      id: filter
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          rust:
+            - '**/*.rs'
+            - '**/Cargo.toml'
+            - '**/Cargo.lock'
+
+  build-and-test:
+    needs: check-changes
+    # Sadece Rust değiştiğinde VEYA main dalına doğrudan bir push geldiğinde çalışır
+    if: needs.check-changes.outputs.rust_changed == 'true' || github.event_name == 'push'
+    
+    strategy:
+      fail-fast: false 
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }} 
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    - name: Rust Cache
+      uses: swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.os }}
+
+    # Hızlı hata almak için Kontrolleri (Linter/Formatter) derlemeden önce yapıyoruz
+    - name: Check Formatting
+      run: cargo fmt --workspace -- --check
+
+    - name: Lint with Clippy
+      run: cargo clippy --workspace --all-targets --all-features
+
+    - name: Build
+      run: cargo build --workspace --verbose
+
+    - name: Run Tests
+      run: cargo test --workspace --verbose
+
+  # Korumalı dallar (Branch Protection) için can kurtaran işi
+  ci-success:
+    needs: [check-changes, build-and-test]
+    runs-on: ubuntu-latest
+    # Bu iş her koşulda çalışır (başarılı, atlanmış veya başarısız)
+    if: always()
+    steps:
+      - name: Check CI Status
+        run: |
+          # check-changes başarısız olduysa veya build-and-test hata verdiyse CI'ı başarısız say
+          if [[ "${{ needs.check-changes.result }}" == "failure" || "${{ needs.build-and-test.result }}" == "failure" ]]; then
+            echo "CI basarisiz oldu."
+            exit 1
+          fi
+          echo "CI basariyla tamamlandi veya güvenle atlandi."
