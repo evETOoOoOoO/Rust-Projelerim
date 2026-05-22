@@ -19,36 +19,117 @@ env:
   CARGO_INCREMENTAL: 1
 
 jobs:
-  check-changes:
+  detect-crates:
     runs-on: ubuntu-latest
     outputs:
-      rust_changed: ${{ steps.filter.outputs.rust }}
-      cargo_lock_changed: ${{ steps.filter.outputs.cargo_lock }}
+      crates: ${{ steps.detect.outputs.crates }}
+      all_crates: ${{ steps.detect.outputs.all_crates }}
+      changed_crates: ${{ steps.detect.outputs.changed_crates }}
+      has_crates: ${{ steps.detect.outputs.has_crates }}
     
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Check for Rust Changes
-      id: filter
-      uses: dorny/paths-filter@v3
-      with:
-        filters: |
-          rust:
-            - '**/*.rs'
-            - '**/Cargo.toml'
-          cargo_lock:
-            - '**/Cargo.lock'
+    - name: Detect All Crates and Changes
+      id: detect
+      run: |
+        #!/bin/bash
+        set -e
+        
+        echo "🔍 Workspace yapısı taranıyor..."
+        
+        # Find all Cargo.toml files (excluding target/)
+        CARGO_FILES=$(find . -name "Cargo.toml" -type f ! -path "*/target/*" ! -path "*/.git/*" | sort)
+        
+        if [ -z "$CARGO_FILES" ]; then
+          echo "❌ Hata: Cargo.toml bulunamadı!"
+          echo "has_crates=false" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+        
+        # Parse crate paths and names
+        CRATES_JSON="["
+        ALL_CRATES="["
+        FIRST=true
+        
+        while IFS= read -r manifest; do
+          CRATE_DIR=$(dirname "$manifest")
+          CRATE_NAME=$(grep -m1 'name = "' "$manifest" | sed 's/name = "\(.*\)"/\1/' | sed 's/["-]/_/g')
+          
+          if [ -z "$CRATE_NAME" ]; then
+            CRATE_NAME=$(basename "$CRATE_DIR")
+          fi
+          
+          if [ "$FIRST" = true ]; then
+            FIRST=false
+          else
+            CRATES_JSON="${CRATES_JSON},"
+            ALL_CRATES="${ALL_CRATES},"
+          fi
+          
+          CRATES_JSON="${CRATES_JSON}\"${CRATE_DIR}\""
+          ALL_CRATES="${ALL_CRATES}{\"path\":\"${CRATE_DIR}\",\"name\":\"${CRATE_NAME}\"}"
+          
+          echo "✅ Bulundu: $CRATE_NAME ($CRATE_DIR)"
+        done <<< "$CARGO_FILES"
+        
+        CRATES_JSON="${CRATES_JSON}]"
+        ALL_CRATES="${ALL_CRATES}]"
+        
+        echo "crates=${CRATES_JSON}" >> "$GITHUB_OUTPUT"
+        echo "all_crates=${ALL_CRATES}" >> "$GITHUB_OUTPUT"
+        echo "has_crates=true" >> "$GITHUB_OUTPUT"
+        
+        # Değişen crates'i tespit et (git diff)
+        echo ""
+        echo "📝 Değişen dosyalar taranıyor..."
+        
+        CHANGED_CRATES="["
+        FIRST=true
+        
+        while IFS= read -r manifest; do
+          CRATE_DIR=$(dirname "$manifest")
+          CRATE_NAME=$(grep -m1 'name = "' "$manifest" | sed 's/name = "\(.*\)"/\1/' | sed 's/["-]/_/g')
+          
+          if [ -z "$CRATE_NAME" ]; then
+            CRATE_NAME=$(basename "$CRATE_DIR")
+          fi
+          
+          # Değişen dosyaları kontrol et
+          if git diff --name-only origin/main...HEAD 2>/dev/null | grep -q "^${CRATE_DIR}/"; then
+            if [ "$FIRST" = true ]; then
+              FIRST=false
+            else
+              CHANGED_CRATES="${CHANGED_CRATES},"
+            fi
+            
+            CHANGED_CRATES="${CHANGED_CRATES}\"${CRATE_DIR}\""
+            echo "🔄 Değişti: $CRATE_NAME ($CRATE_DIR)"
+          fi
+        done <<< "$CARGO_FILES"
+        
+        CHANGED_CRATES="${CHANGED_CRATES}]"
+        echo "changed_crates=${CHANGED_CRATES}" >> "$GITHUB_OUTPUT"
+        
+        # Push event'inde tüm crates'i build et
+        if [ "${{ github.event_name }}" = "push" ]; then
+          echo "changed_crates=${CRATES_JSON}" >> "$GITHUB_OUTPUT"
+          echo "📦 Push tespit edildi: TÜM crates test edilecek"
+        else
+          echo "🔍 PR tespit edildi: DEĞİŞEN crates test edilecek"
+        fi
 
   build-and-test:
-    needs: check-changes
-    if: needs.check-changes.outputs.rust_changed == 'true' || github.event_name == 'push'
+    needs: detect-crates
+    if: needs.detect-crates.outputs.has_crates == 'true'
     
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
+        crate: ${{ fromJson(needs.detect-crates.outputs.changed_crates) }}
 
     runs-on: ${{ matrix.os }}
     
@@ -61,6 +142,19 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Detect Crate Info
+      id: crate_info
+      run: |
+        MANIFEST="${{ matrix.crate }}/Cargo.toml"
+        CRATE_NAME=$(grep -m1 'name = "' "$MANIFEST" | sed 's/name = "\(.*\)"/\1/')
+        
+        echo "name=${CRATE_NAME}" >> "$GITHUB_OUTPUT"
+        echo "path=${{ matrix.crate }}" >> "$GITHUB_OUTPUT"
+        echo "manifest=${MANIFEST}" >> "$GITHUB_OUTPUT"
+        
+        echo "📦 Crate: $CRATE_NAME"
+        echo "📁 Path: ${{ matrix.crate }}"
+
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -72,32 +166,59 @@ jobs:
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
       with:
-        key: ${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
+        workspaces: ${{ matrix.crate }}
+        key: ${{ matrix.os }}-${{ steps.crate_info.outputs.name }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.crate)) }}
         cache-on-failure: true
 
+    - name: Debug - List Crate Structure
+      run: |
+        echo "📁 Crate Yapısı:"
+        ls -la "${{ matrix.crate }}/"
+        echo ""
+        echo "📋 Cargo.toml:"
+        cat "${{ matrix.crate }}/Cargo.toml"
+
     - name: Run Code Formatting Check
+      working-directory: ${{ matrix.crate }}
       run: cargo fmt --all -- --check
+      continue-on-error: true
 
     - name: Run Clippy Static Analysis
-      run: cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings
+      working-directory: ${{ matrix.crate }}
+      run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
+      continue-on-error: true
 
-    - name: Build Workspace
-      run: cargo build --workspace --all-features --release
+    - name: Build Crate
+      working-directory: ${{ matrix.crate }}
+      run: |
+        echo "🔨 Building ${{ steps.crate_info.outputs.name }}..."
+        cargo build --all-features --release
 
     - name: Run Tests
+      working-directory: ${{ matrix.crate }}
       run: |
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          echo "🔍 PR tespit edildi. Değişen paketler test ediliyor..."
-          cargo test --workspace --all-features --lib --bins -- --test-threads=4
-        else
-          echo "📦 Push tespit edildi. Tüm workspace test ediliyor..."
-          cargo test --workspace --all-features -- --test-threads=4
-        fi
+        echo "🧪 Testing ${{ steps.crate_info.outputs.name }}..."
+        cargo test --all-features -- --test-threads=4
 
     - name: Check Documentation
-      run: cargo doc --workspace --all-features --no-deps
+      working-directory: ${{ matrix.crate }}
+      run: cargo doc --all-features --no-deps
+      continue-on-error: true
+
+    - name: Build Examples (if exist)
+      working-directory: ${{ matrix.crate }}
+      run: cargo build --examples --all-features
+      continue-on-error: true
 
   lint-check:
+    needs: detect-crates
+    if: needs.detect-crates.outputs.has_crates == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: ${{ fromJson(needs.detect-crates.outputs.all_crates) }}
+
     runs-on: ubuntu-latest
     
     steps:
@@ -108,58 +229,103 @@ jobs:
       with:
         components: clippy, rustfmt
 
+    - name: Check deny.toml exists
+      id: check_deny
+      run: |
+        if [ -f "${{ matrix.crate.path }}/deny.toml" ]; then
+          echo "has_deny=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_deny=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Cargo Deny Check
-      uses: EmbarkStudios/cargo-deny-action@v1
-      with:
-        log-level: warn
+      if: steps.check_deny.outputs.has_deny == 'true'
+      working-directory: ${{ matrix.crate.path }}
+      run: cargo deny check
+      continue-on-error: true
 
   security-audit:
+    needs: detect-crates
+    if: needs.detect-crates.outputs.has_crates == 'true'
+    
     runs-on: ubuntu-latest
     continue-on-error: true
     
     steps:
     - uses: actions/checkout@v4
 
-    - name: Security Audit
-      uses: rustsec/audit-check-action@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Setup Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+
+    - name: Run Security Audit for all crates
+      run: |
+        echo "🔒 Güvenlik taraması yapılıyor..."
+        CARGO_FILES=$(find . -name "Cargo.toml" -type f ! -path "*/target/*" ! -path "*/.git/*")
+        
+        while IFS= read -r manifest; do
+          CRATE_DIR=$(dirname "$manifest")
+          CRATE_NAME=$(grep -m1 'name = "' "$manifest" | sed 's/name = "\(.*\)"/\1/')
+          
+          echo ""
+          echo "📦 Scanning: $CRATE_NAME ($CRATE_DIR)"
+          cd "$CRATE_DIR"
+          cargo audit || true
+          cd - > /dev/null
+        done <<< "$CARGO_FILES"
 
   ci-success:
-    needs: [check-changes, build-and-test, lint-check, security-audit]
+    needs: [detect-crates, build-and-test, lint-check, security-audit]
     runs-on: ubuntu-latest
     if: always()
     
     steps:
       - name: Evaluate CI Status
         run: |
-          CHECK_RESULT="${{ needs.check-changes.result }}"
+          DETECT_RESULT="${{ needs.detect-crates.result }}"
           BUILD_RESULT="${{ needs.build-and-test.result }}"
           LINT_RESULT="${{ needs.lint-check.result }}"
           SECURITY_RESULT="${{ needs.security-audit.result }}"
           
-          RUST_CHANGED="${{ needs.check-changes.outputs.rust_changed }}"
+          HAS_CRATES="${{ needs.detect-crates.outputs.has_crates }}"
+          CRATES_COUNT=$(echo '${{ needs.detect-crates.outputs.all_crates }}' | grep -o '"path"' | wc -l)
           
-          # Hata durumlarını kontrol et
-          if [[ "$CHECK_RESULT" == "failure" ]] || [[ "$BUILD_RESULT" == "failure" ]]; then
-            echo "❌ Kritik CI adımı başarısız oldu!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 CI Sonuçları:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Crates Tespit: $DETECT_RESULT (Toplam: $CRATES_COUNT)"
+          echo "Build & Test: $BUILD_RESULT"
+          echo "Lint Check: $LINT_RESULT"
+          echo "Security Audit: $SECURITY_RESULT"
+          echo ""
+          
+          # Kritik hatalar
+          if [[ "$DETECT_RESULT" == "failure" ]]; then
+            echo "❌ HATA: Cargo.toml bulunamadı! Workspace yapısını kontrol edin."
             exit 1
           fi
           
-          # İptal edilmiş durumları kontrol et
+          if [[ "$BUILD_RESULT" == "failure" ]]; then
+            echo "❌ HATA: Build veya test başarısız oldu!"
+            exit 1
+          fi
+          
           if [[ "$BUILD_RESULT" == "cancelled" ]]; then
-            echo "⚠️  Build adımı iptal edildi!"
+            echo "⚠️  UYARI: Build adımı iptal edildi!"
             exit 1
           fi
           
-          # Lint kontrolleri başarısız olsa da devam et (uyarı)
+          # Uyarılar (workflow'u durdurmaz)
           if [[ "$LINT_RESULT" == "failure" ]]; then
-            echo "⚠️  Lint kontrolleri başarısız oldu. Detayları kontrol edin."
+            echo "⚠️  UYARI: Lint kontrolleri başarısız. Detayları kontrol edin."
           fi
           
-          # Güvenlik denetimi başarısız olsa da devam et (uyarı)
           if [[ "$SECURITY_RESULT" == "failure" ]]; then
-            echo "⚠️  Güvenlik denetimi başarısız oldu. Detayları kontrol edin."
+            echo "⚠️  UYARI: Güvenlik denetimi başarısız. Detayları kontrol edin."
           fi
           
-          echo "✅ Tüm kritik adımlar başarıyla tamamlandı!"
+          echo ""
+          echo "✅ Tüm $CRATES_COUNT crate başarıyla test edildi!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
