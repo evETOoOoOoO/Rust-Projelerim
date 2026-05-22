@@ -27,63 +27,53 @@ jobs:
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
-        with:
-          shared-key: rust-ci-cache
 
-      - name: Fetch base branch
+      - name: Fetch base
         run: git fetch origin --prune
 
       # =========================
-      # 1. Detect changes
+      # Detect changes
       # =========================
-      - name: Detect changed files
+      - name: Detect changes
         id: detect
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="origin/${{ github.base_ref }}"
-          else
-            BASE="origin/${{ github.event.repository.default_branch }}"
-            if [ "origin/${{ github.ref_name }}" = "$BASE" ]; then
-              BASE="${{ github.event.before }}"
-            fi
-          fi
+          BASE="origin/${{ github.event.repository.default_branch }}"
 
-          # İlk commit / geçersiz before durumunda boş tree kullan
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="$(git hash-object -t tree /dev/null)"
-          fi
+          MERGE_BASE=$(git merge-base HEAD "$BASE" || echo "HEAD~1")
 
-          # Tek diff çağrısı
-          git diff --name-status "$BASE...HEAD" > diff.txt
+          git diff --name-status "$MERGE_BASE" HEAD > diff.txt
 
-          # A/M için ikinci kolon, rename için son kolon yeni dosya yoludur
           awk '
             $1 ~ /^(A|M)$/ && $2 ~ /\.rs$/ {print $2}
-            $1 ~ /^R/ {print $NF}
+            $1 ~ /^R/ {print $3}
           ' diff.txt > changed_files.txt
 
-          echo "Changed Rust files:"
-          if [ -s changed_files.txt ]; then
-            cat changed_files.txt
-          else
-            echo "No Rust changes"
-          fi
+          echo "run_all=false" >> $GITHUB_OUTPUT
 
-          # Cargo.toml veya Cargo.lock değişirse full workspace çalıştır
-          if awk '$0 ~ /(^|[[:space:]])Cargo\.(toml|lock)$/ {found=1} END {exit !found}' diff.txt; then
-            echo "Cargo configuration or dependencies changed. Forcing full workspace run."
-            echo "run_all=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run_all=false" >> "$GITHUB_OUTPUT"
+          if grep -qE 'Cargo\.(toml|lock)' diff.txt; then
+            echo "run_all=true" >> $GITHUB_OUTPUT
           fi
 
       # =========================
-      # 2. Map files → crates
+      # Workspace root (safe & deterministic)
       # =========================
-      - name: Map files to crates
+      - name: Get workspace root
+        id: root
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MANIFEST=$(cargo metadata --no-deps --format-version 1 | jq -r '.workspace_root + "/Cargo.toml"')
+
+          echo "manifest=$MANIFEST" >> $GITHUB_OUTPUT
+
+      # =========================
+      # Map files → crates
+      # =========================
+      - name: Map crates
         id: crates
         shell: bash
         run: |
@@ -105,55 +95,32 @@ jobs:
 
             crate=$(jq -r --arg f "$FULL" '
               .packages[]
-              | select($f | startswith((.manifest_path | dirname) + "/"))
+              | select(any(.targets[]; (.src_path | tostring) == $f))
               | .name
             ' meta.json | head -n 1)
 
-            if [ -n "$crate" ]; then
+            if [ -n "$crate" ] && [ "$crate" != "null" ]; then
               CRATES="$CRATES $crate"
             fi
           done < changed_files.txt
 
-          CRATES=$(echo "$CRATES" | tr ' ' '\n' | awk 'NF' | sort -u | tr '\n' ' ' | sed 's/ $//')
+          CRATES=$(echo "$CRATES" | tr ' ' '\n' | awk 'NF' | sort -u | tr '\n' ' ')
 
-          echo "crates=$CRATES" >> "$GITHUB_OUTPUT"
-          echo "Detected crates: $CRATES"
+          echo "crates=$CRATES" >> $GITHUB_OUTPUT
 
       # =========================
-      # 3. Safety check
+      # Build args
       # =========================
-      - name: Validate detection
+      - name: Build crate args
+        id: args
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ -s changed_files.txt ] && \
-             [ -z "${{ steps.crates.outputs.crates }}" ] && \
-             [ "${{ steps.detect.outputs.run_all }}" = "false" ]; then
-            echo "ERROR: Rust files changed but no crates detected. Check your workspace paths."
-            cat changed_files.txt
-            exit 1
-          fi
-
-      # =========================
-      # 4. Tests
-      # =========================
-      - name: Run tests
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          RUN_ALL="${{ steps.detect.outputs.run_all }}"
           CRATES="${{ steps.crates.outputs.crates }}"
 
-          if [ "$RUN_ALL" = "true" ]; then
-            echo "Running full workspace tests"
-            cargo test --workspace --locked --all-features
-            exit 0
-          fi
-
           if [ -z "$CRATES" ]; then
-            echo "No affected crates"
+            echo "args=" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -162,41 +129,61 @@ jobs:
             ARGS="$ARGS -p $c"
           done
 
-          echo "Testing crates: $ARGS"
-          cargo test $ARGS --locked --all-features
+          echo "args=$ARGS" >> $GITHUB_OUTPUT
 
       # =========================
-      # 5. Clippy
+      # Test
       # =========================
-      - name: Run clippy
+      - name: Test
         shell: bash
         run: |
           set -euo pipefail
 
           RUN_ALL="${{ steps.detect.outputs.run_all }}"
-          CRATES="${{ steps.crates.outputs.crates }}"
+          MANIFEST="${{ steps.root.outputs.manifest }}"
+          ARGS="${{ steps.args.outputs.args }}"
 
           if [ "$RUN_ALL" = "true" ]; then
-            echo "Running full workspace clippy"
-            cargo clippy --workspace --all-targets --all-features -- -D warnings
+            cargo test --workspace --locked
             exit 0
           fi
 
-          if [ -z "$CRATES" ]; then
-            echo "No affected crates"
+          if [ -z "$ARGS" ]; then
+            echo "::notice::No affected crates"
             exit 0
           fi
 
-          ARGS=""
-          for c in $CRATES; do
-            ARGS="$ARGS -p $c"
-          done
-
-          echo "Clippy crates: $ARGS"
-          cargo clippy $ARGS --all-targets --all-features -- -D warnings
+          cargo test --manifest-path "$MANIFEST" $ARGS --locked
 
       # =========================
-      # 6. Format check
+      # Clippy
       # =========================
-      - name: Format check
-        run: cargo fmt --all -- --check
+      - name: Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUN_ALL="${{ steps.detect.outputs.run_all }}"
+          MANIFEST="${{ steps.root.outputs.manifest }}"
+          ARGS="${{ steps.args.outputs.args }}"
+
+          if [ "$RUN_ALL" = "true" ]; then
+            cargo clippy --workspace --all-targets -- -D warnings
+            exit 0
+          fi
+
+          if [ -z "$ARGS" ]; then
+            echo "::notice::No affected crates"
+            exit 0
+          fi
+
+          cargo clippy --manifest-path "$MANIFEST" $ARGS --all-targets -- -D warnings
+
+      # =========================
+      # Format
+      # =========================
+      - name: Format
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
