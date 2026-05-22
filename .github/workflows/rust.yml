@@ -132,10 +132,6 @@ jobs:
         crate: ${{ fromJson(needs.detect-crates.outputs.changed_crates) }}
 
     runs-on: ${{ matrix.os }}
-    
-    env:
-      SCCACHE_GHA_ENABLED: true
-      RUSTC_WRAPPER: sccache
 
     steps:
     - uses: actions/checkout@v4
@@ -159,9 +155,6 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
-
-    - name: Setup sccache
-      uses: mozilla-actions/sccache-action@v0.0.4
 
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
