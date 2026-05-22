@@ -9,6 +9,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings" 
+  # OPTİMİZASYON: Derleme sırasında devasa hata ayıklama sembollerinin üretilmesini engeller.
+  # Bu ayar derleme hızını artırır ve cache (önbellek) boyutunu küçültür.
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
 
 jobs:
   check-changes:
@@ -31,7 +35,6 @@ jobs:
 
   build-and-test:
     needs: check-changes
-    # Sadece Rust değiştiğinde VEYA main dalına doğrudan bir push geldiğinde çalışır
     if: needs.check-changes.outputs.rust_changed == 'true' || github.event_name == 'push'
     
     strategy:
@@ -43,42 +46,58 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        convert-eol: false
 
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
+        # OPTİMİZASYON: Standart cargo test yerine testleri paralel koşan ultra hızlı nextest'i kuruyoruz
+        tools: cargo-nextest
 
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
       with:
-        key: ${{ matrix.os }}
+        # OPTİMİZASYON: Cache anahtarını daha benzersiz yaparak gereksiz önbellek geçersiz kılmalarını önleriz
+        key: ${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
 
-    # Hızlı hata almak için Kontrolleri (Linter/Formatter) derlemeden önce yapıyoruz
     - name: Check Formatting
-      run: cargo fmt --workspace -- --check
+      run: cargo fmt -- --check
 
     - name: Lint with Clippy
-      run: cargo clippy --workspace --all-targets --all-features
+      # OPTİMİZASYON: --no-deps ekleyerek Clippy'nin dış kütüphaneleri (bağımlılıkları) 
+      # tekrar tekrar taramasını engelleriz, sadece bizim yazdığımız kodu tarar.
+      run: cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings
 
     - name: Build
-      run: cargo build --workspace --verbose
+      # OPTİMİZASYON: cargo test zaten test kodlarını derlerken normal kodu da derler.
+      # Ancak büyük projelerde karmaşayı önlemek için sadece test altyapısını önden derliyoruz.
+      run: cargo test --workspace --no-run --verbose
 
-    - name: Run Tests
-      run: cargo test --workspace --verbose
+    - name: Run Tests (Fast)
+      # OPTİMİZASYON: Standart "cargo test" yerine "cargo nextest" kullanarak testleri 
+      # çoklu çekirdek avantajıyla paralel ve kat kat hızlı koşturuyoruz.
+      run: cargo nextest run --workspace --all-features --verbose
 
-  # Korumalı dallar (Branch Protection) için can kurtaran işi
   ci-success:
     needs: [check-changes, build-and-test]
     runs-on: ubuntu-latest
-    # Bu iş her koşulda çalışır (başarılı, atlanmış veya başarısız)
     if: always()
     steps:
       - name: Check CI Status
         run: |
-          # check-changes başarısız olduysa veya build-and-test hata verdiyse CI'ı başarısız say
-          if [[ "${{ needs.check-changes.result }}" == "failure" || "${{ needs.build-and-test.result }}" == "failure" ]]; then
-            echo "CI basarisiz oldu."
+          CHECK_CHANGES_STATUS="${{ needs.check-changes.result }}"
+          BUILD_TEST_STATUS="${{ needs.build-and-test.result }}"
+          
+          echo "Check Changes Durumu: $CHECK_CHANGES_STATUS"
+          echo "Build and Test Durumu: $BUILD_TEST_STATUS"
+          
+          if [ "$CHECK_CHANGES_STATUS" = "failure" ] || \
+             [ "$BUILD_TEST_STATUS" = "failure" ] || \
+             [ "$BUILD_TEST_STATUS" = "cancelled" ] || \
+             { [ "$BUILD_TEST_STATUS" = "skipped" ] && [ "${{ needs.check-changes.outputs.rust_changed }}" = "true" ]; }; then
+            echo "CI adimlarindan biri basarisiz oldu, iptal edildi veya hatali sekilde atlandi!"
             exit 1
           fi
-          echo "CI basariyla tamamlandi veya güvenle atlandi."
+          echo "Tüm kritik adimlar basariyla gecildi veya güvenle atlandi."
