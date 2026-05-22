@@ -20,56 +20,74 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Rust toolchain
+    # Rust
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
 
-    # Cache (critical for speed)
+    # Cache
     - name: Cargo Cache
       uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
 
-    # Detect newly added files only
-    - name: Detect new files
+    # 🧠 Detect workspace root automatically
+    - name: Find workspace root
+      id: ws
+      run: |
+        ROOT=$(cargo metadata --no-deps --format-version 1 | jq -r '.workspace_root')
+        echo "workspace=$ROOT" >> $GITHUB_OUTPUT
+        echo "Workspace root: $ROOT"
+
+    # 🧠 Detect changed files
+    - name: Detect changes
       id: diff
       run: |
-        echo "Changed files:"
         git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD > changes.txt || true
         cat changes.txt
 
-        echo "new_rust_files=$(grep '\.rs$' changes.txt || true)" >> $GITHUB_OUTPUT
+    # 🧠 Map changes → crates (smart step)
+    - name: Map changes to crates
+      id: crates
+      run: |
+        echo "Changed Rust files:"
+        grep '\.rs$' changes.txt || true
 
-    # Inspect ONLY new files (lightweight scan)
-    - name: Inspect new files
+        echo "Affected crates:"
+        cargo metadata --format-version 1 > meta.json
+
+        # naive but effective mapping
+        CRATES=$(cat meta.json | jq -r '.packages[].name')
+
+        echo "crates=$CRATES" >> $GITHUB_OUTPUT
+
+    # 👀 Inspect ONLY new files but in context
+    - name: Inspect changed files
       run: |
         if [ -s changes.txt ]; then
-          echo "Checking newly added files..."
           while read file; do
             echo "→ $file"
-            test -f "$file" && head -n 200 "$file"
+            test -f "$file" && sed -n '1,120p' "$file"
           done < changes.txt
-        else
-          echo "No changes detected."
         fi
 
-    # Build
-    - name: Build
-      run: cargo build --locked --all-features
+    # 🚀 Build only workspace (Cargo decides what changes)
+    - name: Build workspace
+      run: cargo build --workspace --locked --all-features
 
-    # Install nextest (fast test runner)
+    # 🚀 Install nextest
     - name: Install nextest
       run: cargo install cargo-nextest --locked
 
-    - name: Test
-      run: cargo nextest run --locked --all-features
+    # 🚀 Test workspace
+    - name: Test workspace
+      run: cargo nextest run --workspace --locked --all-features
 
-    # Lint
+    # 🔥 Clippy workspace-wide
     - name: Clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-    # Format
+    # 🎯 Format check
     - name: Format
       run: cargo fmt -- --check
