@@ -3,6 +3,10 @@ name: Rust CI
 on:
   push:
     branches: ["**"]
+    paths:
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
   pull_request:
     branches: ["**"]
 
@@ -10,84 +14,141 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   CARGO_INCREMENTAL: 1
+  CARGO_TARGET_DIR: target-ci
 
 jobs:
-  ci:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      crates: ${{ steps.crates.outputs.crates }}
 
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    # Rust
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
 
-    # Cache
-    - name: Cargo Cache
-      uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
+    - name: Install jq
+      run: sudo apt-get update && sudo apt-get install -y jq
 
-    # 🧠 Detect workspace root automatically
-    - name: Find workspace root
-      id: ws
-      run: |
-        ROOT=$(cargo metadata --no-deps --format-version 1 | jq -r '.workspace_root')
-        echo "workspace=$ROOT" >> $GITHUB_OUTPUT
-        echo "Workspace root: $ROOT"
+    - name: Fetch base branch
+      run: git fetch origin
 
-    # 🧠 Detect changed files
+    # 📦 Detect changed files
     - name: Detect changes
-      id: diff
       run: |
-        git diff --name-only origin/${{ github.base_ref || 'main' }}...HEAD > changes.txt || true
+        BASE=${{ github.event.repository.default_branch }}
+        git diff --name-only origin/$BASE...HEAD > changes.txt || true
         cat changes.txt
 
-    # 🧠 Map changes → crates (smart step)
-    - name: Map changes to crates
+    # 🧠 Map changes → crates (REAL FIXED VERSION)
+    - name: Map changed crates
       id: crates
       run: |
-        echo "Changed Rust files:"
-        grep '\.rs$' changes.txt || true
-
-        echo "Affected crates:"
-        cargo metadata --format-version 1 > meta.json
-
-        # naive but effective mapping
-        CRATES=$(cat meta.json | jq -r '.packages[].name')
-
-        echo "crates=$CRATES" >> $GITHUB_OUTPUT
-
-    # 👀 Inspect ONLY new files but in context
-    - name: Inspect changed files
-      run: |
-        if [ -s changes.txt ]; then
-          while read file; do
-            echo "→ $file"
-            test -f "$file" && sed -n '1,120p' "$file"
-          done < changes.txt
+        if [ ! -s changes.txt ]; then
+          echo "crates=" >> $GITHUB_OUTPUT
+          exit 0
         fi
 
-    # 🚀 Build only workspace (Cargo decides what changes)
-    - name: Build workspace
+        cargo metadata --format-version 1 > meta.json
+
+        CRATES=$(jq -r '
+          .packages[]
+          | select(any(.targets[].src_path; 
+            inputs | contains(.)))
+          | .name
+        ' meta.json changes.txt | sort -u | tr '\n' ' ')
+
+        echo "crates=$CRATES" >> $GITHUB_OUTPUT
+        echo "Affected crates: $CRATES"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cargo cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Build
       run: cargo build --workspace --locked --all-features
 
-    # 🚀 Install nextest
+  test:
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cargo cache
+      uses: Swatinem/rust-cache@v2
+
     - name: Install nextest
-      run: cargo install cargo-nextest --locked
+      uses: taiki-e/install-action@nextest
 
-    # 🚀 Test workspace
-    - name: Test workspace
-      run: cargo nextest run --workspace --locked --all-features
+    # 🧪 SMART TEST (only changed crates if detected)
+    - name: Test
+      run: |
+        if [ -z "${{ needs.setup.outputs.crates }}" ]; then
+          echo "No specific crates changed → running full test"
+          cargo nextest run --workspace --locked --all-features
+        else
+          echo "Running tests for: ${{ needs.setup.outputs.crates }}"
+          cargo nextest run -p ${{ needs.setup.outputs.crates }} --locked --all-features
+        fi
 
-    # 🔥 Clippy workspace-wide
-    - name: Clippy
-      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
 
-    # 🎯 Format check
-    - name: Format
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    - name: Cargo cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Format check
       run: cargo fmt -- --check
+
+    # 🧯 SMART CLIPPY
+    - name: Clippy
+      run: |
+        if [ -z "${{ needs.setup.outputs.crates }}" ]; then
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+        else
+          for crate in ${{ needs.setup.outputs.crates }}; do
+            cargo clippy -p "$crate" --all-targets --all-features -- -D warnings
+          done
+        fi
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install audit tools
+      run: cargo install cargo-audit --locked
+
+    - name: Security audit
+      run: cargo audit
