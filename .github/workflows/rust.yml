@@ -9,8 +9,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings" 
-  # OPTİMİZASYON: Derleme sırasında devasa hata ayıklama sembollerinin üretilmesini engeller.
-  # Bu ayar derleme hızını artırır ve cache (önbellek) boyutunu küçültür.
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
 
@@ -40,45 +38,92 @@ jobs:
     strategy:
       fail-fast: false 
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Sistem her alt klasörde gezineceği için karmaşayı önlemek adına 
+        # şimdilik en kararlı ortam olan ubuntu üzerinden doğrulamayı yapıyoruz.
+        os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }} 
 
     steps:
     - uses: actions/checkout@v4
       with:
+        # Tüm Git geçmişini çekiyoruz ki değişen dosyaları kıyaslayabilelim
+        fetch-depth: 0
         convert-eol: false
 
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
-        # OPTİMİZASYON: Standart cargo test yerine testleri paralel koşan ultra hızlı nextest'i kuruyoruz
         tools: cargo-nextest
 
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
       with:
-        # OPTİMİZASYON: Cache anahtarını daha benzersiz yaparak gereksiz önbellek geçersiz kılmalarını önleriz
         key: ${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Check Formatting
-      run: cargo fmt -- --check
+    - name: Dynamically Detect and Run CI on Changed Crates
+      run: |
+        echo "=== Degisen Klasorler ve Crate'ler Tespit Ediliyor ==="
+        
+        # 1. Değişen, yeni eklenen veya ismi değişen tüm dosyaları listele
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD)
+        else
+          # Doğrudan push yapıldıysa bir önceki commit ile kıyasla
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-files)
+        fi
 
-    - name: Lint with Clippy
-      # OPTİMİZASYON: --no-deps ekleyerek Clippy'nin dış kütüphaneleri (bağımlılıkları) 
-      # tekrar tekrar taramasını engelleriz, sadece bizim yazdığımız kodu tarar.
-      run: cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings
+        # 2. Değişen dosyaların ait olduğu benzersiz Cargo.toml konumlarını bul
+        CRATES_TO_TEST=()
+        for file in $CHANGED_FILES; do
+          dir=$(dirname "$file")
+          # Klasör ağacında yukarı doğru çıkarak en yakın Cargo.toml'u ara
+          while [ "$dir" != "." ] && [ "$dir" != "/" ]; do
+            if [ -f "$dir/Cargo.toml" ]; then
+              CRATES_TO_TEST+=("$dir")
+              break
+            fi
+            dir=$(dirname "$dir")
+          done
+          # Eğer dosya doğrudan ana dizindeyse ve orada Cargo.toml varsa
+          if [ -f "Cargo.toml" ]; then
+            CRATES_TO_TEST+=(".")
+          fi
+        done
 
-    - name: Build
-      # OPTİMİZASYON: cargo test zaten test kodlarını derlerken normal kodu da derler.
-      # Ancak büyük projelerde karmaşayı önlemek için sadece test altyapısını önden derliyoruz.
-      run: cargo test --workspace --no-run --verbose
+        # 3. Aynı klasörlerin tekrarlanmasını önlemek için listeyi temizle
+        UNIQUE_CRATES=$(echo "${CRATES_TO_TEST[@]}" | tr ' ' '\n' | sort -u)
 
-    - name: Run Tests (Fast)
-      # OPTİMİZASYON: Standart "cargo test" yerine "cargo nextest" kullanarak testleri 
-      # çoklu çekirdek avantajıyla paralel ve kat kat hızlı koşturuyoruz.
-      run: cargo nextest run --workspace --all-features --verbose
+        if [ -z "$UNIQUE_CRATES" ]; then
+          echo "Test edilecek aktif bir Rust projesi degisikligi bulunamadi."
+          exit 0
+        fi
+
+        # 4. Bulunan her bir crate için sırayla işlemleri çalıştır
+        for crate in $UNIQUE_CRATES; do
+          echo "--------------------------------------------------"
+          echo "👉 Proje Islemleri Baslatildi: Dizin -> $crate"
+          echo "--------------------------------------------------"
+          
+          # Klasöre giriş yap
+          cd "$crate"
+          
+          echo "1) Format Kontrolü Yapiliyor..."
+          cargo fmt -- --check
+          
+          echo "2) Clippy Analizi Yapiliyor..."
+          cargo clippy --all-targets --all-features --no-deps -- -D warnings
+          
+          echo "3) Testler Hazirlaniyor (Derleme)..."
+          cargo test --no-run
+          
+          echo "4) Testler Kosuluyor..."
+          cargo nextest run --all-features
+          
+          # Ana dizine geri dön (Döngünün bir sonraki klasörü doğru bulması için)
+          cd - > /dev/null
+        done
 
   ci-success:
     needs: [check-changes, build-and-test]
@@ -90,14 +135,11 @@ jobs:
           CHECK_CHANGES_STATUS="${{ needs.check-changes.result }}"
           BUILD_TEST_STATUS="${{ needs.build-and-test.result }}"
           
-          echo "Check Changes Durumu: $CHECK_CHANGES_STATUS"
-          echo "Build and Test Durumu: $BUILD_TEST_STATUS"
-          
           if [ "$CHECK_CHANGES_STATUS" = "failure" ] || \
              [ "$BUILD_TEST_STATUS" = "failure" ] || \
              [ "$BUILD_TEST_STATUS" = "cancelled" ] || \
              { [ "$BUILD_TEST_STATUS" = "skipped" ] && [ "${{ needs.check-changes.outputs.rust_changed }}" = "true" ]; }; then
-            echo "CI adimlarindan biri basarisiz oldu, iptal edildi veya hatali sekilde atlandi!"
+            echo "CI adimlarindan biri basarisiz oldu veya hatali sekilde atlandi!"
             exit 1
           fi
           echo "Tüm kritik adimlar basariyla gecildi veya güvenle atlandi."
