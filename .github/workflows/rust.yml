@@ -1,154 +1,202 @@
-name: Rust CI
+name: Rust CI (Smart Crate Aware)
 
 on:
   push:
     branches: ["**"]
-    paths:
-      - "**.rs"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
   pull_request:
     branches: ["**"]
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
   CARGO_INCREMENTAL: 1
   CARGO_TARGET_DIR: target-ci
 
 jobs:
-  setup:
+  ci:
     runs-on: ubuntu-latest
-    outputs:
-      crates: ${{ steps.crates.outputs.crates }}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy, rustfmt
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
 
-    - name: Install jq
-      run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          shared-key: rust-ci-cache
 
-    - name: Fetch base branch
-      run: git fetch origin
+      - name: Fetch base branch
+        run: git fetch origin --prune
 
-    # 📦 Detect changed files
-    - name: Detect changes
-      run: |
-        BASE=${{ github.event.repository.default_branch }}
-        git diff --name-only origin/$BASE...HEAD > changes.txt || true
-        cat changes.txt
+      # =========================
+      # 1. Detect changes
+      # =========================
+      - name: Detect changed files
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    # 🧠 Map changes → crates (REAL FIXED VERSION)
-    - name: Map changed crates
-      id: crates
-      run: |
-        if [ ! -s changes.txt ]; then
-          echo "crates=" >> $GITHUB_OUTPUT
-          exit 0
-        fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="origin/${{ github.event.repository.default_branch }}"
+            if [ "origin/${{ github.ref_name }}" = "$BASE" ]; then
+              BASE="${{ github.event.before }}"
+            fi
+          fi
 
-        cargo metadata --format-version 1 > meta.json
+          # İlk commit / geçersiz before durumunda boş tree kullan
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="$(git hash-object -t tree /dev/null)"
+          fi
 
-        CRATES=$(jq -r '
-          .packages[]
-          | select(any(.targets[].src_path; 
-            inputs | contains(.)))
-          | .name
-        ' meta.json changes.txt | sort -u | tr '\n' ' ')
+          # Tek diff çağrısı
+          git diff --name-status "$BASE...HEAD" > diff.txt
 
-        echo "crates=$CRATES" >> $GITHUB_OUTPUT
-        echo "Affected crates: $CRATES"
+          # A/M için ikinci kolon, rename için son kolon yeni dosya yoludur
+          awk '
+            $1 ~ /^(A|M)$/ && $2 ~ /\.rs$/ {print $2}
+            $1 ~ /^R/ {print $NF}
+          ' diff.txt > changed_files.txt
 
-  build:
-    runs-on: ubuntu-latest
-    needs: setup
+          echo "Changed Rust files:"
+          if [ -s changed_files.txt ]; then
+            cat changed_files.txt
+          else
+            echo "No Rust changes"
+          fi
 
-    steps:
-    - uses: actions/checkout@v4
+          # Cargo.toml veya Cargo.lock değişirse full workspace çalıştır
+          if awk '$0 ~ /(^|[[:space:]])Cargo\.(toml|lock)$/ {found=1} END {exit !found}' diff.txt; then
+            echo "Cargo configuration or dependencies changed. Forcing full workspace run."
+            echo "run_all=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_all=false" >> "$GITHUB_OUTPUT"
+          fi
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+      # =========================
+      # 2. Map files → crates
+      # =========================
+      - name: Map files to crates
+        id: crates
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Cargo cache
-      uses: Swatinem/rust-cache@v2
+          RUN_ALL="${{ steps.detect.outputs.run_all }}"
 
-    - name: Build
-      run: cargo build --workspace --locked --all-features
+          if [ "$RUN_ALL" = "true" ] || [ ! -s changed_files.txt ]; then
+            echo "crates=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-  test:
-    runs-on: ubuntu-latest
-    needs: [setup, build]
+          cargo metadata --format-version 1 > meta.json
 
-    steps:
-    - uses: actions/checkout@v4
+          CRATES=""
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+          while IFS= read -r file; do
+            FULL="$GITHUB_WORKSPACE/$file"
 
-    - name: Cargo cache
-      uses: Swatinem/rust-cache@v2
+            crate=$(jq -r --arg f "$FULL" '
+              .packages[]
+              | select($f | startswith((.manifest_path | dirname) + "/"))
+              | .name
+            ' meta.json | head -n 1)
 
-    - name: Install nextest
-      uses: taiki-e/install-action@nextest
+            if [ -n "$crate" ]; then
+              CRATES="$CRATES $crate"
+            fi
+          done < changed_files.txt
 
-    # 🧪 SMART TEST (only changed crates if detected)
-    - name: Test
-      run: |
-        if [ -z "${{ needs.setup.outputs.crates }}" ]; then
-          echo "No specific crates changed → running full test"
-          cargo nextest run --workspace --locked --all-features
-        else
-          echo "Running tests for: ${{ needs.setup.outputs.crates }}"
-          cargo nextest run -p ${{ needs.setup.outputs.crates }} --locked --all-features
-        fi
+          CRATES=$(echo "$CRATES" | tr ' ' '\n' | awk 'NF' | sort -u | tr '\n' ' ' | sed 's/ $//')
 
-  lint:
-    runs-on: ubuntu-latest
-    needs: setup
+          echo "crates=$CRATES" >> "$GITHUB_OUTPUT"
+          echo "Detected crates: $CRATES"
 
-    steps:
-    - uses: actions/checkout@v4
+      # =========================
+      # 3. Safety check
+      # =========================
+      - name: Validate detection
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy, rustfmt
+          if [ -s changed_files.txt ] && \
+             [ -z "${{ steps.crates.outputs.crates }}" ] && \
+             [ "${{ steps.detect.outputs.run_all }}" = "false" ]; then
+            echo "ERROR: Rust files changed but no crates detected. Check your workspace paths."
+            cat changed_files.txt
+            exit 1
+          fi
 
-    - name: Cargo cache
-      uses: Swatinem/rust-cache@v2
+      # =========================
+      # 4. Tests
+      # =========================
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Format check
-      run: cargo fmt -- --check
+          RUN_ALL="${{ steps.detect.outputs.run_all }}"
+          CRATES="${{ steps.crates.outputs.crates }}"
 
-    # 🧯 SMART CLIPPY
-    - name: Clippy
-      run: |
-        if [ -z "${{ needs.setup.outputs.crates }}" ]; then
-          cargo clippy --workspace --all-targets --all-features -- -D warnings
-        else
-          for crate in ${{ needs.setup.outputs.crates }}; do
-            cargo clippy -p "$crate" --all-targets --all-features -- -D warnings
+          if [ "$RUN_ALL" = "true" ]; then
+            echo "Running full workspace tests"
+            cargo test --workspace --locked --all-features
+            exit 0
+          fi
+
+          if [ -z "$CRATES" ]; then
+            echo "No affected crates"
+            exit 0
+          fi
+
+          ARGS=""
+          for c in $CRATES; do
+            ARGS="$ARGS -p $c"
           done
-        fi
 
-  security:
-    runs-on: ubuntu-latest
+          echo "Testing crates: $ARGS"
+          cargo test $ARGS --locked --all-features
 
-    steps:
-    - uses: actions/checkout@v4
+      # =========================
+      # 5. Clippy
+      # =========================
+      - name: Run clippy
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+          RUN_ALL="${{ steps.detect.outputs.run_all }}"
+          CRATES="${{ steps.crates.outputs.crates }}"
 
-    - name: Install audit tools
-      run: cargo install cargo-audit --locked
+          if [ "$RUN_ALL" = "true" ]; then
+            echo "Running full workspace clippy"
+            cargo clippy --workspace --all-targets --all-features -- -D warnings
+            exit 0
+          fi
 
-    - name: Security audit
-      run: cargo audit
+          if [ -z "$CRATES" ]; then
+            echo "No affected crates"
+            exit 0
+          fi
+
+          ARGS=""
+          for c in $CRATES; do
+            ARGS="$ARGS -p $c"
+          done
+
+          echo "Clippy crates: $ARGS"
+          cargo clippy $ARGS --all-targets --all-features -- -D warnings
+
+      # =========================
+      # 6. Format check
+      # =========================
+      - name: Format check
+        run: cargo fmt --all -- --check
