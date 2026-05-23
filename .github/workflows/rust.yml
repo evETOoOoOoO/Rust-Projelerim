@@ -19,6 +19,9 @@ env:
   CARGO_INCREMENTAL: 1
 
 jobs:
+  # ==========================================
+  # 1. JOB: DEĞİŞEN VE YENİ EKLENEN CRATE'LERİ TESPİT ETME
+  # ==========================================
   detect-crates:
     runs-on: ubuntu-latest
     outputs:
@@ -30,7 +33,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0 # Tüm Git geçmişini çekiyoruz ki değişiklik takibi doğru yapılabilsin
+
+    # Gelişmiş değişiklik takip aracı: Yeni eklenen, değişen veya ismi değişen tüm dosyaları yakalar
+    - name: Get Changed Files
+      id: changed-files
+      uses: tj-actions/changed-files@v44
+      with:
+        json: true
+        escape_json: false
 
     - name: Detect All Crates and Changes
       id: detect
@@ -40,7 +51,7 @@ jobs:
         
         echo "🔍 Workspace yapısı taranıyor..."
         
-        # Find all Cargo.toml files (excluding target/)
+        # Projedeki tüm Cargo.toml dosyalarını buluyoruz (hedef dışı klasörleri hariç tutarak)
         CARGO_FILES=$(find . -name "Cargo.toml" -type f ! -path "*/target/*" ! -path "*/.git/*" | sort)
         
         if [ -z "$CARGO_FILES" ]; then
@@ -49,13 +60,15 @@ jobs:
           exit 1
         fi
         
-        # Parse crate paths and names
+        # ------------------------------------------
+        # TÜM CRATE'LERİ LİSTELEME MANTIĞI
+        # ------------------------------------------
         CRATES_JSON="["
         ALL_CRATES="["
         FIRST=true
         
         while IFS= read -r manifest; do
-          CRATE_DIR=$(dirname "$manifest")
+          CRATE_DIR=$(dirname "$manifest" | sed 's|^\./||') # Klasör yolunun başındaki ./ işaretini temizler
           CRATE_NAME=$(grep -m1 'name = "' "$manifest" | sed 's/name = "\(.*\)"/\1/' | sed 's/["-]/_/g')
           
           if [ -z "$CRATE_NAME" ]; then
@@ -64,10 +77,11 @@ jobs:
           
           if [ "$FIRST" = true ]; then
             FIRST=false
-          else
-            CRATES_JSON="${CRATES_JSON},"
-            ALL_CRATES="${ALL_CRATES},"
           fi
+          
+          # JSON formatına uygun virgül ekleme yönetimi
+          if [ "$CRATES_JSON" != "[" ]; then CRATES_JSON="${CRATES_JSON},"; fi
+          if [ "$ALL_CRATES" != "[" ]; then ALL_CRATES="${ALL_CRATES},"; fi
           
           CRATES_JSON="${CRATES_JSON}\"${CRATE_DIR}\""
           ALL_CRATES="${ALL_CRATES}{\"path\":\"${CRATE_DIR}\",\"name\":\"${CRATE_NAME}\"}"
@@ -82,48 +96,55 @@ jobs:
         echo "all_crates=${ALL_CRATES}" >> "$GITHUB_OUTPUT"
         echo "has_crates=true" >> "$GITHUB_OUTPUT"
         
-        # Değişen crates'i tespit et (git diff)
+        # ------------------------------------------
+        # SADECE DEĞİŞEN/YENİ CRATE'LERİ FİLTRELEME MANTIĞI
+        # ------------------------------------------
         echo ""
-        echo "📝 Değişen dosyalar taranıyor..."
+        echo "📝 Değişen ve yeni eklenen dosyalar analiz ediliyor..."
         
-        CHANGED_CRATES="["
-        FIRST=true
+        # tj-actions adımından gelen ham değişen dosyalar listesi
+        CHANGED_FILES_JSON='${{ steps.changed-files.outputs.all_changed_files }}'
+        CRATES_ARRAY=()
         
-        while IFS= read -r manifest; do
-          CRATE_DIR=$(dirname "$manifest")
-          CRATE_NAME=$(grep -m1 'name = "' "$manifest" | sed 's/name = "\(.*\)"/\1/' | sed 's/["-]/_/g')
-          
-          if [ -z "$CRATE_NAME" ]; then
-            CRATE_NAME=$(basename "$CRATE_DIR")
-          fi
-          
-          # Değişen dosyaları kontrol et
-          if git diff --name-only origin/main...HEAD 2>/dev/null | grep -q "^${CRATE_DIR}/"; then
-            if [ "$FIRST" = true ]; then
-              FIRST=false
-            else
-              CHANGED_CRATES="${CHANGED_CRATES},"
-            fi
+        # Değişen her dosya yolu inceleniyor
+        for file in $(echo "$CHANGED_FILES_JSON" | jq -r '.[]'); do
+          # Dosyanın ait olduğu ana crate klasörünü buluyoruz
+          for manifest in $CARGO_FILES; do
+            CRATE_DIR=$(dirname "$manifest" | sed 's|^\./||')
             
-            CHANGED_CRATES="${CHANGED_CRATES}\"${CRATE_DIR}\""
-            echo "🔄 Değişti: $CRATE_NAME ($CRATE_DIR)"
-          fi
-        done <<< "$CARGO_FILES"
+            # Eğer değişen dosya bu crate klasörünün altındaysa listeye ekle
+            if [[ "$file" == "$CRATE_DIR"* || "$CRATE_DIR" == "." ]]; then
+              if [[ ! " ${CRATES_ARRAY[@]} " =~ " ${CRATE_DIR} " ]]; then
+                CRATES_ARRAY+=("$CRATE_DIR")
+                echo "🔄 Değişiklik/Yeni Ekleme Tespit Edildi: $CRATE_DIR (Dosya: $file)"
+              fi
+            fi
+          done
+        done
         
-        CHANGED_CRATES="${CHANGED_CRATES}]"
-        echo "changed_crates=${CHANGED_CRATES}" >> "$GITHUB_OUTPUT"
+        # Array'i GitHub Actions'ın matris yapısına uygun JSON listesine dönüştürüyoruz
+        if [ ${#CRATES_ARRAY[@]} -eq 0 ]; then
+          CHANGED_CRATES="[]"
+        else
+          CHANGED_CRATES=$(printf '%s\n' "${CRATES_ARRAY[@]}" | jq -R . | jq -s -c .)
+        fi
         
-        # Push event'inde tüm crates'i build et
+        # Eğer push olayı ise tümünü test etme kuralını koruyoruz (İsteğe bağlı değiştirilebilir)
         if [ "${{ github.event_name }}" = "push" ]; then
           echo "changed_crates=${CRATES_JSON}" >> "$GITHUB_OUTPUT"
-          echo "📦 Push tespit edildi: TÜM crates test edilecek"
+          echo "📦 Push tespit edildi: TÜM crate'ler test matrisine alınıyor."
         else
-          echo "🔍 PR tespit edildi: DEĞİŞEN crates test edilecek"
+          echo "changed_crates=${CHANGED_CRATES}" >> "$GITHUB_OUTPUT"
+          echo "🔍 PR/Değişiklik tespit edildi: Sadece değişen crate'ler test edilecek."
         fi
 
+  # ==========================================
+  # 2. JOB: DERLEME VE TEST (DİNAMİK MATRİS)
+  # ==========================================
   build-and-test:
     needs: detect-crates
-    if: needs.detect-crates.outputs.has_crates == 'true'
+    # Eğer değişen hiçbir crate yoksa bu adımı atla (boş matris hatasını önler)
+    if: needs.detect-crates.outputs.has_crates == 'true' && needs.detect-crates.outputs.changed_crates != '[]'
     
     strategy:
       fail-fast: false
@@ -135,8 +156,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - name: Detect Crate Info
       id: crate_info
@@ -156,21 +175,12 @@ jobs:
       with:
         components: clippy, rustfmt
 
-    # [EKLENDİ/GÜNCELLENDİ]: Rust Cache sürümü v2.9.1 olarak güncellendi
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.9.1
       with:
         workspaces: ${{ matrix.crate }}
         key: ${{ matrix.os }}-${{ steps.crate_info.outputs.name }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.crate)) }}
         cache-on-failure: true
-
-    - name: Debug - List Crate Structure
-      run: |
-        echo "📁 Crate Yapısı:"
-        ls -la "${{ matrix.crate }}/"
-        echo ""
-        echo "📋 Cargo.toml:"
-        cat "${{ matrix.crate }}/Cargo.toml"
 
     - name: Run Code Formatting Check
       working-directory: ${{ matrix.crate }}
@@ -184,26 +194,20 @@ jobs:
 
     - name: Build Crate
       working-directory: ${{ matrix.crate }}
-      run: |
-        echo "🔨 Building ${{ steps.crate_info.outputs.name }}..."
-        cargo build --all-features --release
+      run: cargo build --all-features --release
 
     - name: Run Tests
       working-directory: ${{ matrix.crate }}
-      run: |
-        echo "🧪 Testing ${{ steps.crate_info.outputs.name }}..."
-        cargo test --all-features -- --test-threads=4
+      run: cargo test --all-features -- --test-threads=4
 
     - name: Check Documentation
       working-directory: ${{ matrix.crate }}
       run: cargo doc --all-features --no-deps
       continue-on-error: true
 
-    - name: Build Examples (if exist)
-      working-directory: ${{ matrix.crate }}
-      run: cargo build --examples --all-features
-      continue-on-error: true
-
+  # ==========================================
+  # 3. JOB: LINT KONTROLLERİ (TÜM WORKSPACE)
+  # ==========================================
   lint-check:
     needs: detect-crates
     if: needs.detect-crates.outputs.has_crates == 'true'
@@ -223,7 +227,6 @@ jobs:
       with:
         components: clippy, rustfmt
 
-    # [EKLENDİ]: Lint işi için bağımlılıkların önbelleğe alınması sağlandı
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.9.1
       with:
@@ -245,10 +248,12 @@ jobs:
       run: cargo deny check
       continue-on-error: true
 
+  # ==========================================
+  # 4. JOB: GÜVENLİK TARAMASI
+  # ==========================================
   security-audit:
     needs: detect-crates
     if: needs.detect-crates.outputs.has_crates == 'true'
-    
     runs-on: ubuntu-latest
     continue-on-error: true
     
@@ -258,20 +263,16 @@ jobs:
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
 
-    # [EKLENDİ]: Güvenlik taraması adımı için önbellek mekanizması kuruldu
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.9.1
       with:
         key: ubuntu-latest-audit
 
-    # [EKLENDİ]: İstediğin otomatik denetim aracı entegre edildi
-    - name: rust-audit-check
-      uses: actions-rs/audit-check@v1.2.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Install cargo-audit
-      run: cargo install cargo-audit
+      run: |
+        if ! command -v cargo-audit &> /dev/null; then
+          cargo install cargo-audit
+        fi
 
     - name: Run Security Audit for all crates
       run: |
@@ -289,6 +290,9 @@ jobs:
           cd - > /dev/null
         done <<< "$CARGO_FILES"
 
+  # ==========================================
+  # 5. JOB: CI SONUÇ DEĞERLENDİRME
+  # ==========================================
   ci-success:
     needs: [detect-crates, build-and-test, lint-check, security-audit]
     runs-on: ubuntu-latest
@@ -314,12 +318,12 @@ jobs:
           echo "Security Audit: $SECURITY_RESULT"
           echo ""
           
-          # Kritik hatalar
           if [[ "$DETECT_RESULT" == "failure" ]]; then
             echo "❌ HATA: Cargo.toml bulunamadı! Workspace yapısını kontrol edin."
             exit 1
           fi
           
+          # Eğer değişen dosya olmadığı için build skip edildiyse hata verme, success say
           if [[ "$BUILD_RESULT" == "failure" ]]; then
             echo "❌ HATA: Build veya test başarısız oldu!"
             exit 1
@@ -330,15 +334,5 @@ jobs:
             exit 1
           fi
           
-          # Uyarılar (workflow'u durdurmaz)
-          if [[ "$LINT_RESULT" == "failure" ]]; then
-            echo "⚠️  UYARI: Lint kontrolleri başarısız. Detayları kontrol edin."
-          fi
-          
-          if [[ "$SECURITY_RESULT" == "failure" ]]; then
-            echo "⚠️  UYARI: Güvenlik denetimi başarısız. Detayları kontrol edin."
-          fi
-          
-          echo ""
-          echo "✅ Tüm $CRATES_COUNT crate başarıyla test edildi!"
+          echo "✅ CI Süreci başarıyla tamamlandı!"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
