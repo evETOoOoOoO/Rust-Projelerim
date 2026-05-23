@@ -156,8 +156,9 @@ jobs:
       with:
         components: clippy, rustfmt
 
+    # [EKLENDİ/GÜNCELLENDİ]: Rust Cache sürümü v2.9.1 olarak güncellendi
     - name: Rust Cache
-      uses: swatinem/rust-cache@v2
+      uses: Swatinem/rust-cache@v2.9.1
       with:
         workspaces: ${{ matrix.crate }}
         key: ${{ matrix.os }}-${{ steps.crate_info.outputs.name }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.crate)) }}
@@ -222,6 +223,13 @@ jobs:
       with:
         components: clippy, rustfmt
 
+    # [EKLENDİ]: Lint işi için bağımlılıkların önbelleğe alınması sağlandı
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v2.9.1
+      with:
+        workspaces: ${{ matrix.crate.path }}
+        key: ubuntu-latest-lint-${{ matrix.crate.name }}-${{ hashFiles(format('{0}/Cargo.lock', matrix.crate.path)) }}
+
     - name: Check deny.toml exists
       id: check_deny
       run: |
@@ -249,6 +257,18 @@ jobs:
 
     - name: Setup Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
+
+    # [EKLENDİ]: Güvenlik taraması adımı için önbellek mekanizması kuruldu
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v2.9.1
+      with:
+        key: ubuntu-latest-audit
+
+    # [EKLENDİ]: İstediğin otomatik denetim aracı entegre edildi
+    - name: rust-audit-check
+      uses: actions-rs/audit-check@v1.2.0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install cargo-audit
       run: cargo install cargo-audit
