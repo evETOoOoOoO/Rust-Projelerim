@@ -1,2 +1,4 @@
 # Rust-Projelerim
-Rust için küçük orta büyük çaplı projelerim
+
+Rust için monorepo halinde küçük orta büyük çaplı projelerim
+
