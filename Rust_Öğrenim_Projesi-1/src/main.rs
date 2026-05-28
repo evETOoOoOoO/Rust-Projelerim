@@ -1,11 +1,5 @@
 fn main()
 {
-    //Bu fonksiyon tüm öğrenim fonkisyonlarındaki bilgilerin(bi kısmının)
-    //birleştirilmesinden oluşan bir projedir
-}
-
-fn öğrenim1()
-{
     println!("");
     let name = String::from("Ahmet Asaf Güleç");
     println!("{}", name);
@@ -47,10 +41,28 @@ fn öğrenim1()
     println!("The first char is {first_char}");
     println!("");
     
-    println!("All variables are {name}, {player_score}, {delta_time}, {total_points}, {color_in_hex}, {dir_permission}, {gate_flag}, {is_active}, {first_char}")
+    println!("All variables above {name}, {player_score}, {delta_time}, {total_points}, {color_in_hex}, {dir_permission}, {gate_flag}, {is_active}, {first_char}");
+    println!("");
+    
+    let config = (640, 400, "Hello World".to_string(), false);
+    println!("The config  is {config:?}");
+    println!("");
+    let width = config.0;
+    let height = config.1;
+    let (w, h) = (width, height);
+    println!("The screen resolution is {w}:{h}");
+    println!("");
+    
+    let scores: [u8; 5] = [56, 10, 90, 100, 48];
+    println!("The Scores are {scores:?}");
+    println!("");
+    
+    println!("The first score {}", scores[0]);
 }
 
-fn öğrenim2()
+fn variablesproject()
 {
- //BOŞ
+    //Bu fonksiyon tüm öğrenim fonkisyonlarındaki bilgilerin(bi kısmının)
+    //birleştirilmesinden oluşan bir projedir
+    println!("Wait");
 }
