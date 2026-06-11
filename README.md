@@ -13,6 +13,13 @@ Rust ile geliştirdiğim küçük, orta ve büyük ölçekli projelerin bulundu�
 
 Projeler genellikle `crates/` altında tutulur:
 
+```bash
+# Belirli bir projeyi çalıştırmak için:
+cargo run -p <crate_adi>
+
+# Tüm workspace içindeki testleri koşmak için:
+cargo test
+```
 ## Not
 
 Bu repo sürekli gelişmektedir; bazı projeler tamamlanmamış veya deneysel olabilir.
