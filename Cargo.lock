@@ -11,5 +11,9 @@ name = "deneme"
 version = "0.1.0"
 
 [[package]]
+name = "mandelbrot_kümesi_hesaplayıcı"
+version = "0.1.0"
+
+[[package]]
 name = "newton_raphson_golden_ratio"
 version = "0.1.0"
