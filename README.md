@@ -1,10 +1,5 @@
 # Rust-Projelerim
 
-![Rust](https://shields.io)
-![License](https://shields.io)
-![CI](https://shields.io)
-![Postman](https://shields.io)
-
 Rust ile geliştirdiğim küçük, orta ve büyük ölçekli projelerin bulunduğu monorepo. Aynı zamanda öğrenme sürecinde yaptığım denemeleri ve örnek çalışmaları da içerir.
 
 ## Amaç
