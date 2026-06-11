@@ -47,11 +47,9 @@ This repository utilizes a **Cargo Workspace** architecture. Projects are genera
 You can use the following commands from the root directory to manage the projects:
 
 ```bash
-# [TR] Belirli bir projeyi çalıştırmak için:
 # [EN] To run a specific project/crate:
 cargo run -p <crate_name>
 
-# [TR] Tüm workspace içindeki testleri çalıştırmak için:
 # [EN] To run all tests within the workspace:
 cargo test
 ```
