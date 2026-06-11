@@ -1,5 +1,5 @@
 [package]
-name = "mandelbrot_kümesi_hesaplayıcı"
+name = "mandelbrot_set_calculator"
 version = "0.1.0"
 edition = "2024"
 
