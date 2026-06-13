@@ -16,10 +16,10 @@ Bu depo bir **Cargo Workspace** mimarisi kullanmaktadır. Projeler genellikle `c
 Ana dizindeyken projeleri yönetmek için şu komutları kullanabilirsiniz:
 
 ```bash
-# Belirli bir projeyi çalıştırmak için:
+# [TR] Belirli bir projeyi çalıştırmak için:
 cargo run -p <crate_adi>
 
-# Tüm workspace içindeki testleri çalıştırmak için:
+# [TR] Tüm workspace içindeki testleri çalıştırmak için:
 cargo test
 ```
 
