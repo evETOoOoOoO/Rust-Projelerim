@@ -67,8 +67,8 @@ fn main() {
     let first_element = &vek[0];
     println!("First element: {}", first_element);
 
-    if *first_element > 5 {
-        panic!("How can the first element be less than 5 when its value in the vector is 10?");
+    if *first_element < 5 {
+        panic!("How can the first element be less than 5 when its value in the vector is 30?");
     }
 }
 
