@@ -36,7 +36,7 @@ fn main() {
     println!("Is active {is_active}");
     println!();
 
-    let first_char = "a";
+    let first_char = 'a';
     println!("The first char is {first_char}");
     println!();
 

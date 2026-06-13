@@ -1,6 +1,6 @@
 fn main() {
-    let width = 220;
-    let height = 120;
+    let width = 200;
+    let height = 80;
     let max_iter = 3000;
 
     let palette = " .`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
