@@ -69,10 +69,17 @@ fn main() {
     println!("First element: {}", first_element);
     println!();
     println!("Push element: {}", vek[vek.len() - 1]);
+    println!();
 
     if *first_element < 5 {
         panic!("How can the first element be less than 5 when its value in the vector is 30?");
     }
+
+    let mut colors = Vec::new();
+    colors.push(String::from("red"));
+    colors.push(String::from("blue"));
+    colors.push(String::from("green"));
+    println!("Vec list {:?}", colors);
 }
 
 #[allow(dead_code)]
