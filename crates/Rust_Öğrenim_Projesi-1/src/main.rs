@@ -56,16 +56,19 @@ fn main() {
 
     let mut scores: [u8; 5] = [56, 10, 90, 100, 48];
     println!("The Scores are {scores:?}");
+    println!();
     println!("The first score {}, Length is {}", scores[0], scores.len());
     println!();
     scores[1] += 50;
     println!("The first score {}", scores[0]);
     println!();
 
-    let vek: Vec<i32> = vec![30, 10, 20, 40, 90, 12, 38, 1203, 101];
-
+    let mut vek: Vec<i32> = vec![30, 10, 20, 40, 90, 12, 38, 1203, 101];
+    vek.push(92);
     let first_element = &vek[0];
     println!("First element: {}", first_element);
+    println!();
+    println!("Push element: {}", vek[vek.len() - 1]);
 
     if *first_element < 5 {
         panic!("How can the first element be less than 5 when its value in the vector is 30?");
