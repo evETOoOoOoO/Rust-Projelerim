@@ -36,25 +36,25 @@ fn main() {
             io::stdin()
                 .read_line(&mut num1_str)
                 .expect("Failed to read line");
-            let mut num1_f64: f64 = num1_str
+            let num1_f64: f64 = num1_str
                 .trim()
                 .parse()
                 .expect("Please enter a valid number");
-            let mut num1_scaled = (num1_f64 * multiplier).round() as i64;
+            let num1_scaled = (num1_f64 * multiplier).round() as i64;
 
             println!("Please enter the second number: ");
             let mut num2_str = String::new();
             io::stdin()
                 .read_line(&mut num2_str)
                 .expect("Failed to read line");
-            let mut num2_f64: f64 = num2_str
+            let num2_f64: f64 = num2_str
                 .trim()
                 .parse()
                 .expect("Please enter a valid number");
-            let mut num2_scaled = (num2_f64 * multiplier).round() as i64;
-            let mut whole_Number_Scaled = num1_scaled + num2_scaled;
+            let num2_scaled = (num2_f64 * multiplier).round() as i64;
+            let whole_number_scaled = num1_scaled + num2_scaled;
 
-            let mut final_result = whole_Number_Scaled as f64 / multiplier;
+            let final_result = whole_number_scaled as f64 / multiplier;
             println!("The whole number is: {}", final_result);
         }
     } else {
