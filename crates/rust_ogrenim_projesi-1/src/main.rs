@@ -1,4 +1,69 @@
+use std::io;
+
 fn main() {
+    // Bu fonksiyon değişkenler ve veri tipleri ile ilgili bir proje örneği sunar.
+    println!("Please say your name: ");
+    let mut name = String::new();
+    io::stdin()
+        .read_line(&mut name)
+        .expect("Failed to read line");
+    println!("Hello, {name}!");
+
+    let name = name.trim();
+
+    println!("Are you wan't to do a math operation? (Y/N): ");
+    let mut answer = String::new();
+    io::stdin()
+        .read_line(&mut answer)
+        .expect("Failed to read line");
+    let answer = answer.trim().to_uppercase();
+    if answer == "Y" {
+        println!(
+            "Which mathematical operation would you like to perform (addition, subtraction, multiplication, division, square root ( A / D / S / M / SR )?"
+        );
+
+        let multiplier = 10000.0;
+
+        let mut choice = String::new();
+        io::stdin()
+            .read_line(&mut choice)
+            .expect("Failed to read line");
+        let choice = choice.trim().to_uppercase();
+
+        if choice == "A" {
+            println!("Please enter the first number: ");
+            let mut num1_str = String::new();
+            io::stdin()
+                .read_line(&mut num1_str)
+                .expect("Failed to read line");
+            let mut num1_f64: f64 = num1_str
+                .trim()
+                .parse()
+                .expect("Please enter a valid number");
+            let mut num1_scaled = (num1_f64 * multiplier).round() as i64;
+
+            println!("Please enter the second number: ");
+            let mut num2_str = String::new();
+            io::stdin()
+                .read_line(&mut num2_str)
+                .expect("Failed to read line");
+            let mut num2_f64: f64 = num2_str
+                .trim()
+                .parse()
+                .expect("Please enter a valid number");
+            let mut num2_scaled = (num2_f64 * multiplier).round() as i64;
+            let mut whole_Number_Scaled = num1_scaled + num2_scaled;
+
+            let mut final_result = whole_Number_Scaled as f64 / multiplier;
+            println!("The whole number is: {}", final_result);
+        }
+    } else {
+        println!("Goodbye, {name}!");
+    }
+}
+
+#[allow(dead_code)]
+fn rust_ogrenim_aşaması() {
     println!();
     let name = String::from("Ahmet Asaf Güleç");
     println!("{}", name);
@@ -80,11 +145,14 @@ fn main() {
     colors.push(String::from("blue"));
     colors.push(String::from("green"));
     println!("Vec list {:?}", colors);
-}
+    println!();
 
-#[allow(dead_code)]
-fn variablesproject() {
-    //Bu fonksiyon tüm öğrenim fonkisyonlarındaki bilgilerin(bi kısmının)
-    //birleştirilmesinden oluşan bir projedir
-    println!("Wait");
+    let codes: Vec<u8> = (0..=255).collect();
+    println!("Codes: {:?}", codes);
+    println!();
+    let hero_name = "Ahmet Asaf Güleç".to_string();
+    println!("Hero name: {}", hero_name);
+    let short_name = hero_name.replace("Ahmet Asaf Güleç", "Asaf");
+    println!("Short name: {}", short_name);
+    println!();
 }
