@@ -1,5 +1,7 @@
 [workspace]
 members = ["crates/*"]
 resolver = "3"
-
 exclude = ["target", "scripts", "legacy/*"]
+
+[workspace.package]
+authors = ["Ahmet Asaf Güleç <ahmetasafgulec@gmail.com>"]
