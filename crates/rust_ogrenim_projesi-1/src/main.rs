@@ -1,6 +1,6 @@
 //Hesap makinesi projeden ayrıldı ayrı proje halinde
 #[allow(dead_code)]
-fn rust_ogrenim_aşaması() {
+fn main() {
     println!();
     let name = String::from("Ahmet Asaf Güleç");
     println!("{}", name);
