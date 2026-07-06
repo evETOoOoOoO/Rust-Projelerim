@@ -13,7 +13,27 @@ fn main() {
     // 1-100 ARASINA SIKIŞTIRMA FORMÜLÜ:
     let real_number = (hardware_count % 100) + 1;
 
-    println!("My guess: {}", real_number);
+    println!("Was this the number you were thinking of: {}", real_number);
+
+    println!("Did I guess correctly? (Y / n)");
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+    let input = input.trim().to_uppercase();
+
+    match input.as_str() {
+        "Y" => {
+            print!("OH MY GOD I CAN'T BELIEVE IT YEEEY");
+        }
+        "N" => {
+            println!("HOW?!?!?!?!?");
+            return;
+        }
+        _ => {
+            panic!("Invalid option chosen. ");
+        }
+    }
 }
 /*
 TR:
