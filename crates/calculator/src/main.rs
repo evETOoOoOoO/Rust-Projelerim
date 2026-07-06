@@ -1,4 +1,52 @@
-use std::io;
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Decimal {
+    value: i128,
+    scale: u32,
+}
+
+impl Decimal {
+    fn parse(input: &str) -> Result<Decimal, String> {
+        let is_negative = input.starts_with('-');
+        let input = input.trim_start_matches('-'); // işareti ayır
+
+        let parts: Vec<&str> = input.split('.').collect();
+
+        let (int_part, frac_part) = match parts.len() {
+            1 => (parts[0], ""),       // "5" gibi noktasız girdi
+            2 => (parts[0], parts[1]), // "5.25" gibi normal girdi
+            _ => return Err("Geçersiz format".to_string()),
+        };
+
+        let scale = frac_part.len() as u32;
+        let combined = format!("{}{}", int_part, frac_part);
+
+        let mut value: i128 = combined.parse().map_err(|_| "Sayı parse edilemedi")?;
+
+        if is_negative {
+            value = -value;
+        }
+
+        Ok(Decimal { value, scale })
+    }
+
+    fn selam_soyle(&self) {
+        println!("Ben bir Decimal'im, değerim: {:?}", self);
+    }
+}
+
+fn main() {
+    let result = Decimal::parse("-12.34").unwrap();
+    result.selam_soyle();
+}
+/*
+fn main() {
+    let test_cases = vec!["-12.34", "5", "92", "-0.32", "abc", "-0.5", "12.34.62"];
+
+    for case in test_cases {
+        let result = Decimal::parse(case);
+        println!("Input: {}, Result: {:?}", case, result);
+    }
+}
 
 fn main() {
     println!("Please say your name: ");
@@ -62,7 +110,7 @@ fn main() {
         }
     }
 }
-/*
+
 fn main() {
     // Bu fonksiyon değişkenler ve veri tipleri ile ilgili bir proje örneği sunar.
     println!("Please say your name: ");

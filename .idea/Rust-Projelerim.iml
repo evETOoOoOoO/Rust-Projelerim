@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/crates/calculator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/deneme/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/mandelbrot_set_calculator/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/newton_raphson_golden_ratio/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rust_ogrenim_projesi-1/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/deneme/target" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/newton_raphson_golden_ratio/target" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/rust_ogrenim_projesi-1/target" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
