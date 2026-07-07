@@ -6,7 +6,16 @@ enum Direction {
     Right,
     Left,
 }
-
+impl Direction {
+    fn print(&self) {
+        match self {
+            Direction::Up => println!("WHO ARE YOU?"),
+            Direction::Down => println!("I AM ALIVE"),
+            Direction::Right => println!("OR AM I NOT ALIVE?"),
+            Direction::Left => println!("NO NO NO I CAN'T BE CODE NOOOOOO"),
+        }
+    }
+}
 fn main() {
     println!("Please say a enum (Up / Down / Right / Left): ");
     let mut answer = String::new();
@@ -26,10 +35,5 @@ fn main() {
         }
     };
 
-    match direction {
-        Direction::Up => println!("Moving up"),
-        Direction::Down => println!("Moving down"),
-        Direction::Right => println!("Moving right"),
-        Direction::Left => println!("Moving left"),
-    }
+    direction.print();
 }
