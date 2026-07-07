@@ -9,41 +9,73 @@ struct Todo {
     completed: bool,
 }
 
+#[derive(Debug, Deserialize)]
+struct User {
+    id: i32,
+    name: String,
+    username: String,
+    email: String,
+}
+/*
+    HTTP DURUM KODLARI:
+    ------------------------------------
+    | Kod | Anlamı                     |
+    | --- | -------------------------- |
+    | 200 | Başarılı                   |
+    | 201 | Oluşturuldu (POST)         |
+    | 400 | Hatalı istek               |
+    | 401 | Yetkisiz (API key yok vb.) |
+    | 403 | Yasak                      |
+    | 404 | Bulunamadı                 |
+    | 500 | Sunucu hatası              |
+    ------------------------------------
+*/
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
-    let client = reqwest::Client::new();
+    let client1 = reqwest::Client::new();
 
-    let response = client
+    let response1 = client1
         .get("https://jsonplaceholder.typicode.com/todos/1")
         .header("User-Agent", "api_test")
         .send()
         .await?;
 
-    let status = response.status();
+    let status1 = response1.status();
 
-    let response = response.error_for_status()?;
+    let response1 = response1.error_for_status()?;
 
-    let todo = response.json::<Todo>().await?;
+    let todo1 = response1.json::<Todo>().await?;
 
-    println!("ID: {}", todo.id);
-    println!("User ID: {}", todo.user_id);
-    println!("Title: {}", todo.title);
-    println!("Completed: {}", todo.completed);
-    println!("Status: {}", status);
-    /*
-        HTTP DURUM KODLARI:
-        ------------------------------------
-        | Kod | Anlamı                     |
-        | --- | -------------------------- |
-        | 200 | Başarılı                   |
-        | 201 | Oluşturuldu (POST)         |
-        | 400 | Hatalı istek               |
-        | 401 | Yetkisiz (API key yok vb.) |
-        | 403 | Yasak                      |
-        | 404 | Bulunamadı                 |
-        | 500 | Sunucu hatası              |
-        ------------------------------------
-    */
+    println!("ID: {}", todo1.id);
+    println!("User ID: {}", todo1.user_id);
+    println!("Title: {}", todo1.title);
+    println!("Completed: {}", todo1.completed);
+    println!("Status: {}", status1);
+    println!("----------------");
+    //--------------------------------------
+    let client2 = reqwest::Client::new();
+
+    let response2 = client2
+        .get("https://jsonplaceholder.typicode.com/users")
+        .header("User-Agent", "api_test")
+        .send()
+        .await?;
+
+    let status2 = response2.status();
+
+    let response2 = response2.error_for_status()?;
+
+    let users = response2.json::<Vec<User>>().await?;
+
+    for user in users {
+        println!("ID: {}", user.id);
+        println!("Name: {}", user.name);
+        println!("Username: {}", user.username);
+        println!("Email: {}", user.email);
+        println!("Status: {}", status2);
+        println!("----------------");
+    }
+    //--------------------------------------
     Ok(())
 }
 
