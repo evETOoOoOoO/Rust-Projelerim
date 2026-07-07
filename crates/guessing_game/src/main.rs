@@ -3,6 +3,11 @@ use std::arch::x86_64::_rdrand64_step;
 use std::io;
 
 fn main() {
+    if !is_x86_feature_detected!("rdrand") {
+        println!("RDRAND is not supported.");
+        return;
+    }
+
     println!("I will now guess the number you are thinking of. (1 - 100)");
     println!("Hmm, I'm thinking.");
 
