@@ -24,11 +24,10 @@ fn main() {
 
     match input.as_str() {
         "Y" => {
-            print!("OH MY GOD I CAN'T BELIEVE IT YEEEY");
+            println!("OH MY GOD I CAN'T BELIEVE IT YEEEY");
         }
         "N" => {
             println!("HOW?!?!?!?!?");
-            return;
         }
         _ => {
             panic!("Invalid option chosen. ");

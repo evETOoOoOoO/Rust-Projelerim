@@ -11,6 +11,10 @@ name = "deneme"
 version = "0.1.0"
 
 [[package]]
+name = "enums_and_pattern_matching_learn"
+version = "0.1.0"
+
+[[package]]
 name = "guessing_game"
 version = "0.1.0"
 
@@ -24,4 +28,8 @@ version = "0.1.0"
 
 [[package]]
 name = "rust_ogrenim_projesi_1"
+version = "0.1.0"
+
+[[package]]
+name = "talk_game"
 version = "0.1.0"
