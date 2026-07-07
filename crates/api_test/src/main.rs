@@ -46,12 +46,12 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let todo1 = response1.json::<Todo>().await?;
 
+    println!("----------------");
     println!("ID: {}", todo1.id);
     println!("User ID: {}", todo1.user_id);
     println!("Title: {}", todo1.title);
     println!("Completed: {}", todo1.completed);
     println!("Status: {}", status1);
-    println!("----------------");
     //--------------------------------------
     let client2 = reqwest::Client::new();
 
@@ -67,12 +67,15 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let users = response2.json::<Vec<User>>().await?;
 
+    println!("----------------");
+    println!("All user status: {}", status2);
+    println!("----------------");
+
     for user in users {
         println!("ID: {}", user.id);
         println!("Name: {}", user.name);
         println!("Username: {}", user.username);
         println!("Email: {}", user.email);
-        println!("Status: {}", status2);
         println!("----------------");
     }
     //--------------------------------------
