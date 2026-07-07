@@ -21,6 +21,8 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let status = response.status();
 
+    let response = response.error_for_status()?;
+
     let todo = response.json::<Todo>().await?;
 
     println!("ID: {}", todo.id);
