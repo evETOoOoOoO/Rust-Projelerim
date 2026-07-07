@@ -30,7 +30,7 @@ fn main() {
             println!("I understand, you said: {}", input.trim());
         }
         "N" => {
-            panic!("WE CANT TALK! ");
+            println!("WE CANT TALK! ");
         }
         _ => {
             panic!("Invalid option chosen. ");
