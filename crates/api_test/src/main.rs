@@ -11,7 +11,13 @@ struct Todo {
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
-    let response = reqwest::get("https://jsonplaceholder.typicode.com/todos/1").await?;
+    let client = reqwest::Client::new();
+
+    let response = client
+        .get("https://jsonplaceholder.typicode.com/todos/1")
+        .header("User-Agent", "api_test")
+        .send()
+        .await?;
 
     let status = response.status();
 
