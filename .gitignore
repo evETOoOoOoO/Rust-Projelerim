@@ -16,5 +16,10 @@ target/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 #
-# # Çevresel değişkenler ve gizli anahtarlar
+# Environment variables and secrets
 .env
+
+# Optional local environment files
+.env.local
+.env.development
+.env.production
