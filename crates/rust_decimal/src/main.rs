@@ -1,3 +1,5 @@
+use std::io;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Decimal {
     value: i128,
@@ -32,11 +34,37 @@ impl Decimal {
     fn selam_soyle(&self) {
         println!("Ben bir Decimal'im, değerim: {:?}", self);
     }
+
+    fn to_string_custom(&self) -> String {
+        let is_negative = self.value < 0;
+        let abs_value = self.value.abs();
+        let mut value_str = abs_value.to_string();
+
+        while value_str.len() <= self.scale as usize {
+            value_str = format!("0{}", value_str);
+        }
+
+        println!("İşaret negatif mi: {}", is_negative);
+        println!("Mutlak değer: {}", abs_value);
+        println!("String hali: {}", value_str);
+        println!("String uzunluğu: {}", value_str.len());
+        println!("Scale: {}", self.scale);
+
+        String::new()
+    }
 }
 
 fn main() {
-    let result = Decimal::parse("-12.34").unwrap();
+    println!("Bir sayı girin:");
+    let mut answer = String::new();
+    io::stdin()
+        .read_line(&mut answer)
+        .expect("Failed to read line");
+    let answer = answer.trim().to_uppercase();
+
+    let result = Decimal::parse(&answer).unwrap();
     result.selam_soyle();
+    result.to_string_custom();
 }
 /*
 fn main() {
