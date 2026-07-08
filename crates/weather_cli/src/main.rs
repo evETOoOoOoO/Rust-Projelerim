@@ -79,8 +79,8 @@ async fn main() -> Result<(), reqwest::Error> {
     println!("Sıcaklık  : {}°C", weather1.current.temperature_2m);
     println!("Şehir     : {}", location.name);
     println!("Ülke      : {}", location.country);
-    println!("Enlem     : {} m", location.latitude);
-    println!("Boylam    : {}°C", location.longitude);
+    println!("Enlem     : {}", location.latitude);
+    println!("Boylam    : {}", location.longitude);
     println!("Nüfus     : {}", location.population);
     println!("Status    : {}", status1);
     println!("=== Weather CLI ===");
