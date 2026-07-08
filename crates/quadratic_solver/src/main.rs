@@ -20,7 +20,9 @@ fn read_number(prompt: &str) -> f64 {
 fn main() {
     let a = read_number("a değerini gir:");
 
-    if a == 0.0 {
+    const EPSILON: f64 = 1e-10;
+
+    if a == EPSILON {
         println!("Bu ikinci dereceden denklem değildir.");
         return;
     }
@@ -31,8 +33,6 @@ fn main() {
     let delta = b * b - 4.0 * a * c;
 
     println!("Delta = {}", delta);
-
-    const EPSILON: f64 = 1e-10;
 
     if delta > EPSILON {
         println!("İki kök var.");
