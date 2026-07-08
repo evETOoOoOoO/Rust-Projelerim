@@ -34,7 +34,7 @@ fn main() {
 
     const EPSILON: f64 = 1e-10;
 
-    if delta > 0.0 {
+    if delta > EPSILON {
         println!("İki kök var.");
 
         let sqrt_delta = delta.sqrt();
