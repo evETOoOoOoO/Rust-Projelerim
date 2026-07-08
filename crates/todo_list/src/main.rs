@@ -14,7 +14,8 @@ fn main() {
         println!("1. Görev ekle");
         println!("2. Görevleri listele");
         println!("3. Görevi tamamlandı işaretle");
-        println!("4. Çıkış");
+        println!("4. Görev ara");
+        println!("5. Çıkış");
         println!("Seçiminiz:");
 
         let mut choice = String::new();
@@ -79,6 +80,28 @@ fn main() {
                 }
             }
             "4" => {
+                println!("Aranacak görev id'sini girin:");
+                let mut search_id = String::new();
+                io::stdin()
+                    .read_line(&mut search_id)
+                    .expect("Failed to read line");
+                let search_id: u32 = match search_id.trim().parse() {
+                    Ok(id) => id,
+                    Err(_) => {
+                        println!("Geçersiz sayı");
+                        continue;
+                    }
+                };
+
+                let result = find_task(&tasks, search_id);
+                match result {
+                    Some(task) => {
+                        println!("Bulundu: {} (tamamlandı: {})", task.title, task.completed)
+                    }
+                    None => println!("Bulunamadı"),
+                }
+            }
+            "5" => {
                 println!("Görüşürüz!");
                 break;
             }
@@ -87,4 +110,13 @@ fn main() {
             }
         }
     }
+}
+
+fn find_task(tasks: &Vec<Todo>, id: u32) -> Option<&Todo> {
+    for task in tasks {
+        if task.id == id {
+            return Some(task);
+        }
+    }
+    None
 }
