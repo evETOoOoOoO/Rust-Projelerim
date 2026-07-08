@@ -44,15 +44,14 @@ struct GeoResponse {
 */
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
-    let client1 = reqwest::Client::new();
-    let client2 = reqwest::Client::new();
-    let response1 = client1
+    let client = reqwest::Client::new();
+    let response1 = client
         .get("https://api.open-meteo.com/v1/forecast?latitude=39.93&longitude=32.85&current=temperature_2m&timezone=auto")
         .header("User-Agent", "api_test")
         .send()
         .await?;
 
-    let response2 = client2
+    let response2 = client
         .get("https://geocoding-api.open-meteo.com/v1/search?name=Istanbul&count=1")
         .header("User-Agent", "api_test")
         .send()
@@ -73,16 +72,19 @@ async fn main() -> Result<(), reqwest::Error> {
     let location = &geo.results[0];
 
     println!("=== Weather CLI ===");
-    println!("Saat      : {}", weather1.current.time);
-    println!("Timezone  : {}", weather1.timezone);
-    println!("Rakım     : {} m", weather1.elevation);
-    println!("Sıcaklık  : {}°C", weather1.current.temperature_2m);
-    println!("Şehir     : {}", location.name);
-    println!("Ülke      : {}", location.country);
-    println!("Enlem     : {}", location.latitude);
-    println!("Boylam    : {}", location.longitude);
-    println!("Nüfus     : {}", location.population);
-    println!("Status    : {}", status1);
+    println!("Saat        : {}", weather1.current.time);
+    println!("Timezone    : {}", weather1.timezone);
+    println!("Rakım       : {} m", weather1.elevation);
+    println!("Sıcaklık    : {}°C", weather1.current.temperature_2m);
+    println!("Şehir       : {}", location.name);
+    println!("Ülke        : {}", location.country);
+    println!("Enlem       : {}", location.latitude);
+    println!("Boylam      : {}", location.longitude);
+    println!("Nüfus       : {}", location.population);
+    println!("Geo Timezone: {}", location.timezone);
+    println!("Geo Rakım   : {} m", location.elevation);
+    println!("Weather API : {}", status1);
+    println!("Geo API     : {}", status2);
     println!("=== Weather CLI ===");
 
     Ok(())
