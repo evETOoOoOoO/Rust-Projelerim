@@ -37,7 +37,7 @@ fn main() {
 
                 if a.abs() < EPSILON {
                     println!("Bu ikinci dereceden denklem değildir.");
-                    return;
+                    continue;
                 }
 
                 let b = read_number("b değerini gir:");
