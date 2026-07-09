@@ -5,3 +5,8 @@ exclude = ["target", "scripts", "legacy/*"]
 
 [workspace.package]
 authors = ["Ahmet Asaf Güleç <ahmetasafgulec@gmail.com>"]
+edition = "2024"
+license = "MIT"
+
+[profile.release]
+opt-level = 3
