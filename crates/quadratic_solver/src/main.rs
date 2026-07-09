@@ -45,13 +45,14 @@ fn main() {
 
                 let delta = b * b - 4.0 * a * c;
 
+                let denominator = 2.0 * a;
+
                 println!("Delta = {}", delta);
 
                 if delta > EPSILON {
                     println!("İki kök var.");
 
                     let sqrt_delta = delta.sqrt();
-                    let denominator = 2.0 * a;
 
                     let x1 = (-b + sqrt_delta) / denominator;
                     let x2 = (-b - sqrt_delta) / denominator;
@@ -61,11 +62,19 @@ fn main() {
                 } else if delta.abs() < EPSILON {
                     println!("Tek kök var.");
 
-                    let x = -b / (2.0 * a);
+                    let x = -b / (denominator);
 
                     println!("x = {}", x);
                 } else {
-                    println!("Gerçek kök yok.");
+                    println!("Karmaşık kökler var.");
+
+                    let sqrt_delta = delta.abs().sqrt();
+
+                    let real_part = -b / (denominator);
+                    let imaginary_part = sqrt_delta / (denominator);
+
+                    println!("x1 = {} + {}i", real_part, imaginary_part);
+                    println!("x2 = {} - {}i", real_part, imaginary_part);
                 }
             }
             "2" => {
