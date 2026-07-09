@@ -18,40 +18,63 @@ fn read_number(prompt: &str) -> f64 {
 }
 
 fn main() {
-    let a = read_number("a değerini gir:");
+    loop {
+        println!("\n=== Quadratic Solver ===");
+        println!("1. Denklem çöz ");
+        println!("2. Çıkış ");
 
-    const EPSILON: f64 = 1e-10;
+        let mut choice = String::new();
+        io::stdin()
+            .read_line(&mut choice)
+            .expect("Failed to read line");
+        let choice = choice.trim();
 
-    if a == EPSILON {
-        println!("Bu ikinci dereceden denklem değildir.");
-        return;
-    }
+        match choice {
+            "1" => {
+                let a = read_number("a değerini gir:");
 
-    let b = read_number("b değerini gir:");
-    let c = read_number("c değerini gir:");
+                const EPSILON: f64 = 1e-10;
 
-    let delta = b * b - 4.0 * a * c;
+                if a.abs() < EPSILON {
+                    println!("Bu ikinci dereceden denklem değildir.");
+                    return;
+                }
 
-    println!("Delta = {}", delta);
+                let b = read_number("b değerini gir:");
+                let c = read_number("c değerini gir:");
 
-    if delta > EPSILON {
-        println!("İki kök var.");
+                let delta = b * b - 4.0 * a * c;
 
-        let sqrt_delta = delta.sqrt();
-        let denominator = 2.0 * a;
+                println!("Delta = {}", delta);
 
-        let x1 = (-b + sqrt_delta) / denominator;
-        let x2 = (-b - sqrt_delta) / denominator;
+                if delta > EPSILON {
+                    println!("İki kök var.");
 
-        println!("x1 = {}", x1);
-        println!("x2 = {}", x2);
-    } else if delta.abs() < EPSILON {
-        println!("Tek kök var.");
+                    let sqrt_delta = delta.sqrt();
+                    let denominator = 2.0 * a;
 
-        let x = -b / (2.0 * a);
+                    let x1 = (-b + sqrt_delta) / denominator;
+                    let x2 = (-b - sqrt_delta) / denominator;
 
-        println!("x = {}", x);
-    } else {
-        println!("Gerçek kök yok.");
+                    println!("x1 = {}", x1);
+                    println!("x2 = {}", x2);
+                } else if delta.abs() < EPSILON {
+                    println!("Tek kök var.");
+
+                    let x = -b / (2.0 * a);
+
+                    println!("x = {}", x);
+                } else {
+                    println!("Gerçek kök yok.");
+                }
+            }
+            "2" => {
+                println!("Görüşürüz!");
+                break;
+            }
+            _ => {
+                println!("Geçersiz seçim.");
+            }
+        }
     }
 }
