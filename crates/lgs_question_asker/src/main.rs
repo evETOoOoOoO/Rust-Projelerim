@@ -83,32 +83,60 @@ fn main() {
         return;
     }
 
-    let json = fs::read_to_string("tum_sorular.json").unwrap();
+    loop {
+        let json = fs::read_to_string("tum_sorular.json").unwrap();
 
-    let db: Database = serde_json::from_str(&json).unwrap();
+        let db: Database = serde_json::from_str(&json).unwrap();
 
-    let mut hardware_count: u64 = 0;
+        let mut hardware_count: u64 = 0;
 
-    unsafe { while _rdrand64_step(&mut hardware_count) == 0 {} }
+        unsafe { while _rdrand64_step(&mut hardware_count) == 0 {} }
 
-    let real_number = (hardware_count % 2441) + 1;
+        let real_number = (hardware_count % 2441) + 1;
 
-    let random_index = (hardware_count % db.sorular.len() as u64) as usize;
+        let random_index = (hardware_count % db.sorular.len() as u64) as usize;
 
-    let soru = &db.sorular[random_index];
+        let soru = &db.sorular[random_index];
 
-    println!("ID: {}", soru.id);
-    println!("Soru: {}", soru.soru.metin);
+        println!("ID           : {}", soru.id);
+        println!();
+        println!("Zorluk       : {}", soru.zorluk);
+        println!();
+        println!("Ana Kategori : {}", soru.konu.ana_kategori);
+        println!("Alt Kategori : {}", soru.konu.alt_kategori);
+        println!("Soru         : {}", soru.soru.metin);
 
-    if let Some(paragraf) = &soru.soru.paragraf {
-        println!("\nParagraf:\n{}\n", paragraf);
+        if let Some(paragraf) = &soru.soru.paragraf {
+            println!("\nParagraf:\n{}\n", paragraf);
 
-        for harf in ["A", "B", "C", "D"] {
-            if let Some(secenek) = soru.secenekler.get(harf) {
-                println!("{} ) {}", harf, secenek);
+            for harf in ["A", "B", "C", "D"] {
+                if let Some(secenek) = soru.secenekler.get(harf) {
+                    println!("{} ) {}", harf, secenek);
+                }
+            }
+        } else {
+            println!("\n(Bu soruda paragraf yok)\n");
+        }
+
+        println!("\n1. Yeni soru  2. Çıkış");
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+        let input = input.trim().to_uppercase();
+
+        match input.as_str() {
+            "1" => {
+                println!();
+                continue;
+            }
+            "2" => {
+                break;
+            }
+            _ => {
+                println!("Invalid option chosen. ");
+                break;
             }
         }
-    } else {
-        println!("\n(Bu soruda paragraf yok)\n");
     }
 }
