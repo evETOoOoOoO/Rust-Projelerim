@@ -92,8 +92,6 @@ fn main() {
 
         unsafe { while _rdrand64_step(&mut hardware_count) == 0 {} }
 
-        let real_number = (hardware_count % 2441) + 1;
-
         let random_index = (hardware_count % db.sorular.len() as u64) as usize;
 
         let soru = &db.sorular[random_index];
