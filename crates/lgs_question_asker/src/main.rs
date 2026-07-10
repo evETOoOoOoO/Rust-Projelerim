@@ -83,11 +83,11 @@ fn main() {
         return;
     }
 
+    let json = fs::read_to_string("tum_sorular.json").unwrap();
+
+    let db: Database = serde_json::from_str(&json).unwrap();
+
     loop {
-        let json = fs::read_to_string("tum_sorular.json").unwrap();
-
-        let db: Database = serde_json::from_str(&json).unwrap();
-
         let mut hardware_count: u64 = 0;
 
         unsafe { while _rdrand64_step(&mut hardware_count) == 0 {} }
