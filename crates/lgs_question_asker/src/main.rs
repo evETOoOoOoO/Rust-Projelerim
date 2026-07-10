@@ -102,6 +102,7 @@ fn main() {
         println!();
         println!("Ana Kategori : {}", soru.konu.ana_kategori);
         println!("Alt Kategori : {}", soru.konu.alt_kategori);
+        println!();
         println!("Soru         : {}", soru.soru.metin);
 
         if let Some(paragraf) = &soru.soru.paragraf {
