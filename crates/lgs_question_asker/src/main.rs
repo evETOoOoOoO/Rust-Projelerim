@@ -125,10 +125,11 @@ fn main() {
 
         match input.as_str() {
             "1" => {
-                println!();
+                println!("Yeni soru geliyor!");
                 continue;
             }
             "2" => {
+                println!("Çıkıyorum!");
                 break;
             }
             _ => {
