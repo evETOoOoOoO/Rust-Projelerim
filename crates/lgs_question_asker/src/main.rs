@@ -103,18 +103,22 @@ fn main() {
         println!("Ana Kategori : {}", soru.konu.ana_kategori);
         println!("Alt Kategori : {}", soru.konu.alt_kategori);
         println!();
-        println!("Soru         : {}", soru.soru.metin);
+        println!("\nSoru:\n{}\n", soru.soru.metin);
 
         if let Some(paragraf) = &soru.soru.paragraf {
             println!("\nParagraf:\n{}\n", paragraf);
+        }
 
+        if soru.secenekler.contains_key("A") {
             for harf in ["A", "B", "C", "D"] {
                 if let Some(secenek) = soru.secenekler.get(harf) {
                     println!("{} ) {}", harf, secenek);
                 }
             }
         } else {
-            println!("\n(Bu soruda paragraf yok)\n");
+            for (baslık, cevap) in &soru.secenekler {
+                println!("{} ) {}", baslık, cevap);
+            }
         }
 
         println!("\n1. Yeni soru  2. Çıkış");
