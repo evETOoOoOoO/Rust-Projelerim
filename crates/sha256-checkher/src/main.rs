@@ -7,6 +7,7 @@ fn main() {
 
     let mut reader = BufReader::new(file);
 
+    let mut hasher = Sha256::new();
     let mut buffer = [0u8; 64 * 1024];
 
     loop {
@@ -16,6 +17,10 @@ fn main() {
             break;
         }
 
-        println!("{} byte okundu", bytes_okundu);
+        hasher.update(&buffer[..bytes_okundu]);
     }
+
+    let sonuc = hasher.finalize();
+
+    println!("{}", hex::encode(sonuc));
 }
