@@ -130,7 +130,7 @@ fn main() {
 
             match input.as_str() {
                 "1" => {
-                    println!("Yeni soru geliyor!\n---------------------------------\n");
+                    println!("Yeni soru geliyor!\n\n---------------------------------\n");
                     continue 'ana_dongu;
                 }
                 "2" => {
