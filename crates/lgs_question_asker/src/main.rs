@@ -87,7 +87,7 @@ fn main() {
 
     let db: Database = serde_json::from_str(&json).unwrap();
 
-    loop {
+    'ana_dongu: loop {
         let mut hardware_count: u64 = 0;
 
         unsafe { while _rdrand64_step(&mut hardware_count) == 0 {} }
@@ -120,26 +120,37 @@ fn main() {
                 println!("{} ) {}", baslık, cevap);
             }
         }
+        loop {
+            println!("\n1. Yeni soru 2. Cevabı Göster 3. Çıkış");
+            let mut input = String::new();
+            io::stdin()
+                .read_line(&mut input)
+                .expect("Failed to read line");
+            let input = input.trim().to_uppercase();
 
-        println!("\n1. Yeni soru  2. Çıkış");
-        let mut input = String::new();
-        io::stdin()
-            .read_line(&mut input)
-            .expect("Failed to read line");
-        let input = input.trim().to_uppercase();
-
-        match input.as_str() {
-            "1" => {
-                println!("Yeni soru geliyor!");
-                continue;
-            }
-            "2" => {
-                println!("Çıkıyorum!");
-                break;
-            }
-            _ => {
-                println!("Invalid option chosen. ");
-                break;
+            match input.as_str() {
+                "1" => {
+                    println!("Yeni soru geliyor!\n---------------------------------\n");
+                    continue 'ana_dongu;
+                }
+                "2" => {
+                    println!("\n================ CEVAP ================");
+                    println!(
+                        "Doğru Seçenek :{}",
+                        soru.cevap.dogru.as_deref().unwrap_or("Hata: Belirtilmemiş")
+                    );
+                    println!("Açıklama      :{}", soru.cevap.aciklama);
+                    println!("=======================================");
+                    continue;
+                }
+                "3" => {
+                    println!("Çıkıyorum!");
+                    break 'ana_dongu;
+                }
+                _ => {
+                    println!("Invalid option chosen. ");
+                    break;
+                }
             }
         }
     }
