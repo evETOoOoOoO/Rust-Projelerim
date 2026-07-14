@@ -136,10 +136,10 @@ fn main() {
                 "2" => {
                     println!("\n================ CEVAP ================");
                     println!(
-                        "Doğru Seçenek :{}",
+                        "Doğru Seçenek : {}",
                         soru.cevap.dogru.as_deref().unwrap_or("Hata: Belirtilmemiş")
                     );
-                    println!("Açıklama      :{}", soru.cevap.aciklama);
+                    println!("Açıklama      : {}", soru.cevap.aciklama);
                     println!("=======================================");
                     continue;
                 }
