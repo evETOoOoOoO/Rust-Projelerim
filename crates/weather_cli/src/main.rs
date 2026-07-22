@@ -47,7 +47,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let client = reqwest::Client::new();
     let response1 = client
         .get("https://api.open-meteo.com/v1/forecast?latitude=39.93&longitude=32.85&current=temperature_2m&timezone=auto")
-        .header("User-Agent", "api_test")
+        .header("User-Agent", "weather_cli")
         .send()
         .await?;
 
