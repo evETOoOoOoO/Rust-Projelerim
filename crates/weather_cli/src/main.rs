@@ -53,7 +53,7 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let response2 = client
         .get("https://geocoding-api.open-meteo.com/v1/search?name=Istanbul&count=1")
-        .header("User-Agent", "api_test")
+        .header("User-Agent", "weather_cli")
         .send()
         .await?;
 
