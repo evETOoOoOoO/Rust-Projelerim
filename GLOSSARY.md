@@ -137,29 +137,31 @@
 
 
 # Rust Operatörler Tablosu
-# -------------------------------------------------------------------------------------------------------
-  [Operatör]  [Türü]         [Açıklama]                   [Örnek]           [Sonuç / Etki]
+# -------------------------------------------------------------------------------------------------------------------------------------------------
 
-  ==          Karşılaştırma  Eşittir                      5 == 5            true
-  !=          Karşılaştırma  Eşit Değildir                5 != 10           true
-  <           Karşılaştırma  Küçüktür                     3 < 7             true
-  >           Karşılaştırma  Büyüktür                     20 > 10           true
-  <=          Karşılaştırma  Küçük Eşittir                5 <= 5            true
-  >=          Karşılaştırma  Büyük Eşittir                8 >= 3            true
-  &&          Mantıksal      VE (AND)                     true && false     false
-  ||          Mantıksal      VEYA (OR)                    true || false     true
-  !           Mantıksal      DEĞİL (NOT)                  !true             false
-  +=          Bileşik Atama  Toplayarak Ata               x += 5            x = x + 5
-  -=          Bileşik Atama  Çıkararak Ata                x -= 3            x = x - 3
-  *=          Bileşik Atama  Çarparak Ata                 x *= 2            x = x * 2
-  /=          Bileşik Atama  Bölerek Ata                  x /= 4            x = x / 4
-  %=          Bileşik Atama  Mod Alarak Ata               x %= 2            x = x % 2
-  &           Bellek         Ödünç Alma (Referans)        &x                x'in bellek adresini verir (Read-only)
-  &mut        Bellek         Değiştirilebilir Ödünç Alma  &mut x            x'in değerini değiştirme izni verir
-  *           Bellek         Değer Çözme (Dereference)    *y                y adresindeki gerçek değere erişir
-  ?           Hata Yönetimi  Hata Yayma / Erken Dönüş     islem()?          Ok ise değeri çıkarır, Err ise return eder
-  ..          Aralık Kontrol Açık Aralık (Son dahil değil)1..5              1, 2, 3, 4 sayılarını kapsar
-  ..=         Aralık Kontrol Kapalı Aralık (Son dahil)    1..=5             1, 2, 3, 4, 5 sayılarını kapsar
-  as          Veri Tipi      Tip Dönüşümü                 x as f64          Tam sayı olan x'i ondalıklı sayıya çevirir
-# -------------------------------------------------------------------------------------------------------
+| [Operatör] | [Türü]         | [Açıklama]                    | [Örnek]        | [Sonuç / Etki]                                             |
+| :--------- | :------------- | :----------------------------- | :------------- | :--------------------------------------------------------- |
+| ==         | Karşılaştırma  | Eşittir                        | 5 == 5         | true                                                       |
+| !=         | Karşılaştırma  | Eşit Değildir                  | 5 != 10        | true                                                       |
+| <          | Karşılaştırma  | Küçüktür                       | 3 < 7          | true                                                       |
+| >          | Karşılaştırma  | Büyüktür                       | 20 > 10        | true                                                       |
+| <=         | Karşılaştırma  | Küçük Eşittir                  | 5 <= 5         | true                                                       |
+| >=         | Karşılaştırma  | Büyük Eşittir                  | 8 >= 3         | true                                                       |
+| &&         | Mantıksal      | VE (AND)                       | true && false  | false                                                      |
+| \|\|       | Mantıksal      | VEYA (OR)                      | true \|\| false| true                                                       |
+| !          | Mantıksal      | DEĞİL (NOT)                    | !true          | false                                                      |
+| +=         | Bileşik Atama  | Toplayarak Ata                 | x += 5         | x = x + 5                                                  |
+| -=         | Bileşik Atama  | Çıkararak Ata                  | x -= 3         | x = x - 3                                                  |
+| *=         | Bileşik Atama  | Çarparak Ata                   | x *= 2         | x = x * 2                                                  |
+| /=         | Bileşik Atama  | Bölerek Ata                    | x /= 4         | x = x / 4                                                  |
+| %=         | Bileşik Atama  | Mod Alarak Ata                 | x %= 2         | x = x % 2                                                  |
+| &          | Bellek         | Ödünç Alma (Referans)          | &x             | x'in bellek adresini verir (Read-only)                     |
+| &mut       | Bellek         | Değiştirilebilir Ödünç Alma    | &mut x         | x'in değerini değiştirme izni verir                        |
+| *          | Bellek         | Değer Çözme (Dereference)      | *y             | y adresindeki gerçek değere erişir                         |
+| ?          | Hata Yönetimi  | Hata Yayma / Erken Dönüş       | islem()?       | Ok ise değeri çıkarır, Err ise return eder                 |
+| ..         | Aralık Kontrol | Açık Aralık (Son dahil değil)  | 1..5           | 1, 2, 3, 4 sayılarını kapsar                               |
+| ..=        | Aralık Kontrol | Kapalı Aralık (Son dahil)      | 1..=5          | 1, 2, 3, 4, 5 sayılarını kapsar                            |
+| as         | Veri Tipi      | Tip Dönüşümü                   | x as f64       | Tam sayı olan x'i ondalıklı sayıya çevirir                 |
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------
 # Rust Operatörler Tablosu
