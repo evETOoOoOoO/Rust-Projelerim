@@ -7,6 +7,7 @@ exclude = ["target", "scripts", "legacy/*"]
 authors = ["Ahmet Asaf Güleç <ahmetasafgulec@gmail.com>"]
 edition = "2024"
 license = "MIT"
+readme = "README.md"
 
 [profile.release]
 opt-level = 3
