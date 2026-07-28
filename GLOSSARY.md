@@ -80,7 +80,7 @@
 # === RUST & CARGO KOMUTLARI KILAVUZU ===
 
 | Kategori                 | Komut                         | Açıklama / Etki                                                                                |
-| :----------------------  | :---------------------------- | :--------------------------------------------------------------------------------------------- |
+| :----------------------- | :---------------------------- | :--------------------------------------------------------------------------------------------- |
 | **Rustup (Yönetim)**     | `rustup update`               | Rust'ı en son sürüme günceller                                                                 |
 | **Rustup (Yönetim)**     | `rustup check`                | Yeni bir güncelleme var mı diye kontrol eder                                                   |
 | **Rustup (Yönetim)**     | `rustup self update`          | Rustup aracının kendisini günceller                                                            |
