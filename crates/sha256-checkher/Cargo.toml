@@ -1,9 +1,10 @@
 [package]
 name = "sha256-checkher"
 version = "0.1.0"
-authors.workspace = true
 edition.workspace = true
+authors.workspace = true
 license.workspace = true
+readme.workspace = true
 
 [dependencies]
 hex = "0.4.3"

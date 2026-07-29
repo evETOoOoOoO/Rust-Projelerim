@@ -1,6 +1,9 @@
 [package]
 name = "deneme"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+readme.workspace = true
 
 [dependencies]

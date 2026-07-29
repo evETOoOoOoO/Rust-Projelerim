@@ -1,8 +1,10 @@
 [package]
 name = "api_test"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 authors.workspace = true
+license.workspace = true
+readme.workspace = true
 
 [dependencies]
 reqwest = { version = "0.13.4", features = ["json"] }

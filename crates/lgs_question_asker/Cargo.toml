@@ -1,9 +1,10 @@
 [package]
 name = "lgs_question_asker"
 version = "0.1.0"
-authors.workspace = true
 edition.workspace = true
+authors.workspace = true
 license.workspace = true
+readme.workspace = true
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
