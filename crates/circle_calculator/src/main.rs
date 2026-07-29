@@ -166,7 +166,7 @@ fn main() {
             }
             _ => {
                 println!();
-                println!("Lütfen 1, 2 veya 3 girin.");
+                println!("Lütfen 1-6 arasında bir değer veya çıkmak için q girin.");
             }
         }
     }
