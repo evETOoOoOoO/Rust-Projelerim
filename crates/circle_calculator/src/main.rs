@@ -20,6 +20,7 @@ fn main() {
             "4" => nokta_kontrol(),
             "5" => teget_uzunlugu(),
             "6" => halka_alani(),
+            "7" => kure_hesapla(),
             "q" => {
                 println!("\nGüle güle!");
                 break;
@@ -40,6 +41,7 @@ fn menu() {
     4 - Nokta Çemberin İçinde mi?\n\
     5 - Teğet Uzunluğu\n\
     6 - Halka (Annulus) Alanı\n\
+    7 - Küre Alanı ve Hacmi\n\
     q - Çıkış"
     );
 }
@@ -208,6 +210,18 @@ fn halka_alani() {
     println!("Halka (Annulus) Alanı   : {:.4}", halka_alani);
     println!("=== Sonuçlar ===");
     println!();
+}
+
+fn kure_hesapla() {
+    let r = read_f64("Yarıçapı girin:");
+
+    let alan = 4.0 * PI * r.powi(2);
+    let hacim = (4.0 / 3.0) * PI * r.powi(3);
+
+    println!("\n=== Küre Sonuçları ===");
+    println!("Yüzey Alanı : {:.4}", alan);
+    println!("Küre Hacmi  : {:.4}", hacim);
+    println!("=====================\n");
 }
 /*
 fn main() {
