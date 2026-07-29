@@ -8,6 +8,22 @@ authors = ["Ahmet Asaf Güleç <ahmetasafgulec@gmail.com>"]
 edition = "2024"
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/evETOoOoOoO/Rust-Projelerim"
+
+[workspace.lints.rust]
+dead_code = "warn"
+unused_imports = "warn"
+
+[workspace.lints.clippy]
+pedantic = "warn"
 
 [profile.release]
 opt-level = 3
+overflow-checks = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+split-debuginfo = "unpacked"
