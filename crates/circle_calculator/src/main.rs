@@ -28,6 +28,11 @@ fn main() {
                 io::stdin().read_line(&mut r).expect("Failed to read line");
                 let r: f64 = r.trim().parse().expect("Geçerli bir sayı girin");
 
+                if r <= 0.0 {
+                    println!("Yarıçap pozitif olmalıdır.");
+                    continue;
+                }
+
                 let cap = 2.0 * r;
                 let cevre = 2.0 * PI * r;
                 let alan = PI * r * r;
@@ -45,6 +50,11 @@ fn main() {
                 let mut r = String::new();
                 io::stdin().read_line(&mut r).expect("Failed to read line");
                 let r: f64 = r.trim().parse().expect("Geçerli bir sayı girin");
+
+                if r <= 0.0 {
+                    println!("Yarıçap pozitif olmalıdır.");
+                    continue;
+                }
 
                 println!("Merkez açıyı girin: ");
                 let mut a = String::new();
@@ -67,14 +77,21 @@ fn main() {
                 io::stdin().read_line(&mut r).expect("Failed to read line");
                 let r: f64 = r.trim().parse().expect("Geçerli bir sayı girin");
 
+                if r <= 0.0 {
+                    println!("Yarıçap pozitif olmalıdır.");
+                    continue;
+                }
+
                 println!("Merkez açıyı girin: ");
                 let mut a = String::new();
                 io::stdin().read_line(&mut a).expect("Failed to read line");
                 let a: f64 = a.trim().parse().expect("Geçerli bir sayı girin");
 
-                let kiris = 2.0 * r * (a.to_radians() / 2.0).sin();
-                let x = r * a.to_radians().cos();
-                let y = r * a.to_radians().sin();
+                let rad = a.to_radians();
+
+                let kiris = 2.0 * r * (rad / 2.0).sin();
+                let x = r * rad.cos();
+                let y = r * rad.sin();
 
                 println!();
                 println!("=== Sonuçlar ===");
@@ -89,6 +106,11 @@ fn main() {
                 let mut r = String::new();
                 io::stdin().read_line(&mut r).expect("Failed to read line");
                 let r: f64 = r.trim().parse().expect("Geçerli bir sayı girin");
+
+                if r <= 0.0 {
+                    println!("Yarıçap pozitif olmalıdır.");
+                    continue;
+                }
 
                 println!("x kordinatını girin: ");
                 let mut x = String::new();
@@ -106,11 +128,17 @@ fn main() {
                 let fark = (uzaklik_kare - yaricap_kare).abs();
 
                 if uzaklik_kare < yaricap_kare {
+                    println!();
                     println!("Nokta çemberin içindedir.");
+                    println!();
                 } else if fark < EPSILON {
+                    println!();
                     println!("Nokta çember üzerindedir.");
+                    println!();
                 } else {
+                    println!();
                     println!("Nokta çemberin dışındadır.");
+                    println!();
                 }
             }
             "5" => {
@@ -118,6 +146,11 @@ fn main() {
                 let mut r = String::new();
                 io::stdin().read_line(&mut r).expect("Failed to read line");
                 let r: f64 = r.trim().parse().expect("Geçerli bir sayı girin");
+
+                if r <= 0.0 {
+                    println!("Yarıçap pozitif olmalıdır.");
+                    continue;
+                }
 
                 println!("Çember merkezinden dış noktaya olan uzaklığı girin: ");
                 let mut d = String::new();
@@ -148,6 +181,11 @@ fn main() {
                     .expect("Failed to read line");
                 let buyuk_r: f64 = buyuk_r.trim().parse().expect("Geçerli bir sayı girin");
 
+                if r <= 0.0 || buyuk_r <= 0.0 {
+                    println!("Yarıçaplar pozitif olmalıdır.");
+                    continue;
+                }
+
                 if buyuk_r <= r {
                     println!("Büyük yarıçap küçük yarıçaptan büyük olmalıdır.");
                 } else {
@@ -167,6 +205,7 @@ fn main() {
             _ => {
                 println!();
                 println!("Lütfen 1-6 arasında bir değer veya çıkmak için q girin.");
+                println!();
             }
         }
     }
