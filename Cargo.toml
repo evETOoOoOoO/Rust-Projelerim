@@ -17,6 +17,8 @@ missing_docs = "allow"
 
 [workspace.lints.clippy]
 pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
 
 [profile.release]
 opt-level = 3
