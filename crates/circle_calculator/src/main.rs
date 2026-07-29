@@ -5,6 +5,202 @@ const EPSILON: f64 = 1e-10;
 
 fn main() {
     loop {
+        menu();
+
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+        let input = input.trim();
+
+        match input.trim() {
+            "1" => cap_cevre_alani(),
+            "2" => yay_ve_dilim(),
+            "3" => kiris_ve_nokta(),
+            "4" => nokta_kontrol(),
+            "5" => teget_uzunlugu(),
+            "6" => halka_alani(),
+            "q" => {
+                println!("\nGüle güle!");
+                break;
+            }
+            _ => {
+                println!("\nLütfen 1-6 arasında bir değer veya q girin.\n");
+            }
+        }
+    }
+}
+
+fn menu() {
+    println!(
+        "Ne yapmak istiyorsunuz?\n\
+    1 - Çap, Çevre ve Alan\n\
+    2 - Yay ve Dilim\n\
+    3 - Kiriş ve Çember Üzerindeki Nokta\n\
+    4 - Nokta Çemberin İçinde mi?\n\
+    5 - Teğet Uzunluğu\n\
+    6 - Halka (Annulus) Alanı\n\
+    q - Çıkış"
+    );
+}
+
+fn read_f64(mesaj: &str) -> f64 {
+    println!("{mesaj}");
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+
+    input.trim().parse().expect("Geçerli bir sayı girin")
+}
+
+fn cap_cevre_alani() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= 0.0 {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let cap = 2.0 * r;
+    let cevre = 2.0 * PI * r;
+    let alan = PI * r * r;
+
+    println!();
+    println!("=== Sonuçlar ===");
+    println!("Çap  : {:.4}", cap);
+    println!("Çevre: {:.4}", cevre);
+    println!("Alan : {:.4}", alan);
+    println!("=== Sonuçlar ===");
+    println!();
+}
+
+fn yay_ve_dilim() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= 0.0 {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let a = read_f64("Merkez açıyı girin: ");
+
+    let cember_yay_uzunlugu = 2.0 * PI * r * a / 360.0;
+    let daire_dilimi_alani = PI * r * r * a / 360.0;
+
+    println!();
+    println!("=== Sonuçlar ===");
+    println!("Çember yay uzunluğu: {:.4}", cember_yay_uzunlugu);
+    println!("Daire dilimi alanı : {:.4}", daire_dilimi_alani);
+    println!("=== Sonuçlar ===");
+    println!();
+}
+
+fn kiris_ve_nokta() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= 0.0 {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let a = read_f64("Merkez açıyı girin:");
+
+    let rad = a.to_radians();
+
+    let kiris = 2.0 * r * (rad / 2.0).sin();
+    let x = r * rad.cos();
+    let y = r * rad.sin();
+
+    println!();
+    println!("=== Sonuçlar ===");
+    println!("Kiriş uzunluğu     : {:.4}", kiris);
+    println!("x koordinatı       : {:.4}", x);
+    println!("y koordinatı       : {:.4}", y);
+    println!("=== Sonuçlar ===");
+    println!();
+}
+
+fn nokta_kontrol() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= 0.0 {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let x = read_f64("x koordinatını girin:");
+    let y = read_f64("y koordinatını girin:");
+
+    let uzaklik_kare = x.powi(2) + y.powi(2);
+    let yaricap_kare = r.powi(2);
+
+    let fark = (uzaklik_kare - yaricap_kare).abs();
+
+    if uzaklik_kare < yaricap_kare {
+        println!();
+        println!("Nokta çemberin içindedir.");
+        println!();
+    } else if fark < EPSILON {
+        println!();
+        println!("Nokta çember üzerindedir.");
+        println!();
+    } else {
+        println!();
+        println!("Nokta çemberin dışındadır.");
+        println!();
+    }
+}
+
+fn teget_uzunlugu() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= 0.0 {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let d = read_f64("Merkezden dış noktaya olan uzaklığı girin:");
+
+    if d <= r {
+        println!("Bu noktadan teğet çizilemez.");
+        return;
+    }
+
+    let teget = (d.powi(2) - r.powi(2)).sqrt();
+
+    println!();
+    println!("=== Sonuçlar ===");
+    println!("Teğet uzunluğu     : {:.4}", teget);
+    println!("=== Sonuçlar ===");
+    println!();
+}
+
+fn halka_alani() {
+    let r = read_f64("Küçük yarıçapı girin:");
+
+    let buyuk_r = read_f64("Büyük yarıçapı girin:");
+
+    if r <= 0.0 || buyuk_r <= 0.0 {
+        println!("Yarıçaplar pozitif olmalıdır.");
+        return;
+    }
+
+    if buyuk_r <= r {
+        println!("Büyük yarıçap küçük yarıçaptan büyük olmalıdır.");
+        return;
+    }
+
+    let halka_alani = PI * (buyuk_r.powi(2) - r.powi(2));
+
+    println!();
+    println!("=== Sonuçlar ===");
+    println!("Halka (Annulus) Alanı   : {:.4}", halka_alani);
+    println!("=== Sonuçlar ===");
+    println!();
+}
+/*
+fn main() {
+    loop {
         println!(
             "Ne yapmak istiyorsunuz?\n\
         1 - Çap, Çevre ve Alan\n\
@@ -210,3 +406,4 @@ fn main() {
         }
     }
 }
+*/

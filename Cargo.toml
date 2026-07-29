@@ -21,9 +21,9 @@ nursery = "warn"
 cargo = "warn"
 
 [profile.release]
+lto = "thin"
 opt-level = 3
 overflow-checks = true
-lto = true
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
