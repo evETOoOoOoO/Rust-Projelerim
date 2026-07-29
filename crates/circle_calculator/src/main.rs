@@ -46,9 +46,9 @@ fn menu() {
 
 // use std::io::{self, Write};
 
-fn read_f64(mesaj: &str) -> f64 {
+pub fn read_f64(mesaj: &str) -> f64 {
     loop {
-        print!("{mesaj}");
+        print!("{}", mesaj);
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
