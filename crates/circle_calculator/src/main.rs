@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use std::io;
+use std::io::{self, Write};
 
 const EPSILON: f64 = 1e-10;
 
@@ -44,13 +44,24 @@ fn menu() {
     );
 }
 
+// use std::io::{self, Write};
+
 fn read_f64(mesaj: &str) -> f64 {
-    println!("{mesaj}");
+    loop {
+        print!("{mesaj}");
+        io::stdout().flush().unwrap();
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_err() {
+            println!("Girdi okunamadı, tekrar deneyin. ");
+            continue;
+        }
 
-    input.trim().parse().expect("Geçerli bir sayı girin")
+        match input.trim().parse::<f64>() {
+            Ok(sayi) => return sayi,
+            Err(_) => println!("Hatalı giriş! Lütfen geçerli bir sayı yazın."),
+        }
+    }
 }
 
 fn cap_cevre_alani() {
