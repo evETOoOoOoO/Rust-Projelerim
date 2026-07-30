@@ -21,7 +21,7 @@ fn main() {
             "5" => teget_uzunlugu(),
             "6" => halka_alani(),
             "7" => kure_hesapla(),
-            "8" => segment_alanı_ve_cevresi(),
+            "8" => segment_alani_ve_cevresi(),
             "9" => yay_egriligi(),
             "q" => {
                 println!("\nGüle güle!");
@@ -234,7 +234,7 @@ fn kure_hesapla() {
     println!("=====================\n");
 }
 
-fn segment_alanı_ve_cevresi() {
+fn segment_alani_ve_cevresi() {
     let r = read_f64("Yarıçapı girin:");
 
     if r <= EPSILON {
@@ -257,11 +257,11 @@ fn segment_alanı_ve_cevresi() {
     let dilim = PI * r.powi(2) * a / 360.0;
     let ucgen = 0.5 * r.powi(2) * rad.sin();
 
-    let segment_alanı = dilim - ucgen;
+    let segment_alani = dilim - ucgen;
     let segment_cevresi = yay + kiris;
 
     println!("\n=== Sonuçlar ===");
-    println!("Segment Alanı : {:.4}", segment_alanı);
+    println!("Segment Alanı : {:.4}", segment_alani);
     println!("Segment çevresi:{:.4}", segment_cevresi);
     println!("================\n");
 }
