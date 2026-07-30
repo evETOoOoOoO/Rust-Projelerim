@@ -1,5 +1,6 @@
 use std::f64::consts::PI;
 use std::io::{self, Write};
+use std::ops::Rem;
 
 const EPSILON: f64 = 1e-10;
 
@@ -23,12 +24,13 @@ fn main() {
             "7" => kure_hesapla(),
             "8" => segment_alani_ve_cevresi(),
             "9" => yay_egriligi(),
+            "10" => kartezyen_polar(),
             "q" => {
                 println!("\nGüle güle!");
                 break;
             }
             _ => {
-                println!("\nLütfen 1-9 arasında bir değer veya q girin.\n");
+                println!("\nLütfen 1-10 arasında bir değer veya q girin.\n");
             }
         }
     }
@@ -46,6 +48,7 @@ fn menu() {
     7 - Küre Alanı ve Hacmi\n\
     8 - Segment Alanı ve Çevresi\n\
     9 - Yay Eğriliği (κ)\n\
+    10 - Kartezyen -> Polar Dönüşümü\n\
     q - Çıkış"
     );
 }
@@ -279,6 +282,25 @@ fn yay_egriligi() {
     println!("\n=== Sonuçlar ===");
     println!("Yay Eğriliği (κ) : {:.6}", kappa);
     println!("=================\n");
+}
+
+fn kartezyen_polar() {
+    let x = read_f64("x koordinatını girin:");
+    let y = read_f64("y koordinatını girin:");
+
+    let r = (x.powi(2) + y.powi(2)).sqrt();
+
+    if r < EPSILON {
+        println!("Nokta orijindedir (0,0). Polar koordinatlarda açı tanımsızdır.");
+        return;
+    }
+
+    let a = y.atan2(x).to_degrees().rem_euclid(360.0);
+
+    println!("\n=== Sonuçlar ===");
+    println!("Yarıçap       : {:.4}", r);
+    println!("Merkez açı (θ): {:.4}", a);
+    println!("=== Sonuçlar ===\n");
 }
 /*
 fn main() {
