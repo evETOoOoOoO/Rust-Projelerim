@@ -21,6 +21,8 @@ fn main() {
             "5" => teget_uzunlugu(),
             "6" => halka_alani(),
             "7" => kure_hesapla(),
+            "8" => segment_alanı_ve_cevresi(),
+            "9" => yay_egriligi(),
             "q" => {
                 println!("\nGüle güle!");
                 break;
@@ -42,6 +44,8 @@ fn menu() {
     5 - Teğet Uzunluğu\n\
     6 - Halka (Annulus) Alanı\n\
     7 - Küre Alanı ve Hacmi\n\
+    8 - Segment Alanı ve Çevresi\n\
+    9 - Yay Eğriliği (κ)\n\
     q - Çıkış"
     );
 }
@@ -78,13 +82,11 @@ fn cap_cevre_alani() {
     let cevre = 2.0 * PI * r;
     let alan = PI * r * r;
 
-    println!();
     println!("=== Sonuçlar ===");
     println!("Çap  : {:.4}", cap);
     println!("Çevre: {:.4}", cevre);
     println!("Alan : {:.4}", alan);
     println!("=== Sonuçlar ===");
-    println!();
 }
 
 fn yay_ve_dilim() {
@@ -105,12 +107,10 @@ fn yay_ve_dilim() {
     let cember_yay_uzunlugu = 2.0 * PI * r * a / 360.0;
     let daire_dilimi_alani = PI * r * r * a / 360.0;
 
-    println!();
-    println!("=== Sonuçlar ===");
+    println!("\n=== Sonuçlar ===");
     println!("Çember yay uzunluğu: {:.4}", cember_yay_uzunlugu);
     println!("Daire dilimi alanı : {:.4}", daire_dilimi_alani);
-    println!("=== Sonuçlar ===");
-    println!();
+    println!("=== Sonuçlar ===\n");
 }
 
 fn kiris_ve_nokta() {
@@ -134,13 +134,11 @@ fn kiris_ve_nokta() {
     let x = r * rad.cos();
     let y = r * rad.sin();
 
-    println!();
-    println!("=== Sonuçlar ===");
+    println!("\n=== Sonuçlar ===");
     println!("Kiriş uzunluğu     : {:.4}", kiris);
     println!("x koordinatı       : {:.4}", x);
     println!("y koordinatı       : {:.4}", y);
-    println!("=== Sonuçlar ===");
-    println!();
+    println!("=== Sonuçlar ===\n");
 }
 
 fn nokta_kontrol() {
@@ -191,11 +189,9 @@ fn teget_uzunlugu() {
 
     let teget = (d.powi(2) - r.powi(2)).sqrt();
 
-    println!();
-    println!("=== Sonuçlar ===");
+    println!("\n=== Sonuçlar ===");
     println!("Teğet uzunluğu     : {:.4}", teget);
-    println!("=== Sonuçlar ===");
-    println!();
+    println!("=== Sonuçlar ===\n");
 }
 
 fn halka_alani() {
@@ -215,11 +211,9 @@ fn halka_alani() {
 
     let halka_alani = PI * (buyuk_r.powi(2) - r.powi(2));
 
-    println!();
-    println!("=== Sonuçlar ===");
+    println!("\n=== Sonuçlar ===");
     println!("Halka (Annulus) Alanı   : {:.4}", halka_alani);
-    println!("=== Sonuçlar ===");
-    println!();
+    println!("=== Sonuçlar ===\n");
 }
 
 fn kure_hesapla() {
@@ -237,6 +231,53 @@ fn kure_hesapla() {
     println!("Yüzey Alanı : {:.4}", alan);
     println!("Küre Hacmi  : {:.4}", hacim);
     println!("=====================\n");
+}
+
+fn segment_alanı_ve_cevresi() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= EPSILON {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let a = read_f64("Merkez açıyı girin:");
+
+    if !(0.0..=360.0).contains(&a) {
+        println!("Merkez açı 0 ile 360 derece arasında olmalıdır.");
+        return;
+    }
+
+    let rad = a.to_radians();
+
+    let yay = r * rad;
+    let kiris = 2.0 * r * (rad / 2.0).sin();
+
+    let dilim = PI * r.powi(2) * a / 360.0;
+    let ucgen = 0.5 * r.powi(2) * rad.sin();
+
+    let segment_alanı = dilim - ucgen;
+    let segment_cevresi = yay + kiris;
+
+    println!("\n=== Sonuçlar ===");
+    println!("Segment Alanı : {:.4}", segment_alanı);
+    println!("Segment çevresi:{:.4}", segment_cevresi);
+    println!("================\n");
+}
+
+fn yay_egriligi() {
+    let r = read_f64("Yarıçapı girin:");
+
+    if r <= EPSILON {
+        println!("Yarıçap pozitif olmalıdır.");
+        return;
+    }
+
+    let kappa = 1.0 / r;
+
+    println!("\n=== Sonuçlar ===");
+    println!("Yay Eğriliği (κ) : {:.6}", kappa);
+    println!("=================\n");
 }
 /*
 fn main() {
