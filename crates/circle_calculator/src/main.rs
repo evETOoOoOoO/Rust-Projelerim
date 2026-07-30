@@ -1,6 +1,5 @@
 use std::f64::consts::PI;
 use std::io::{self, Write};
-use std::ops::Rem;
 
 const EPSILON: f64 = 1e-10;
 
