@@ -26,7 +26,7 @@ fn main() {
                 break;
             }
             _ => {
-                println!("\nLütfen 1-6 arasında bir değer veya q girin.\n");
+                println!("\nLütfen 1-7 arasında bir değer veya q girin.\n");
             }
         }
     }
@@ -69,7 +69,7 @@ pub fn read_f64(mesaj: &str) -> f64 {
 fn cap_cevre_alani() {
     let r = read_f64("Yarıçapı girin:");
 
-    if r <= 0.0 {
+    if r <= EPSILON {
         println!("Yarıçap pozitif olmalıdır.");
         return;
     }
@@ -90,12 +90,17 @@ fn cap_cevre_alani() {
 fn yay_ve_dilim() {
     let r = read_f64("Yarıçapı girin:");
 
-    if r <= 0.0 {
+    if r <= EPSILON {
         println!("Yarıçap pozitif olmalıdır.");
         return;
     }
 
     let a = read_f64("Merkez açıyı girin: ");
+
+    if !(0.0..=360.0).contains(&a) {
+        println!("Merkez açı 0 ile 360 derece arasında olmalıdır.");
+        return;
+    }
 
     let cember_yay_uzunlugu = 2.0 * PI * r * a / 360.0;
     let daire_dilimi_alani = PI * r * r * a / 360.0;
@@ -111,12 +116,17 @@ fn yay_ve_dilim() {
 fn kiris_ve_nokta() {
     let r = read_f64("Yarıçapı girin:");
 
-    if r <= 0.0 {
+    if r <= EPSILON {
         println!("Yarıçap pozitif olmalıdır.");
         return;
     }
 
     let a = read_f64("Merkez açıyı girin:");
+
+    if !(0.0..=360.0).contains(&a) {
+        println!("Merkez açı 0 ile 360 derece arasında olmalıdır.");
+        return;
+    }
 
     let rad = a.to_radians();
 
@@ -136,7 +146,7 @@ fn kiris_ve_nokta() {
 fn nokta_kontrol() {
     let r = read_f64("Yarıçapı girin:");
 
-    if r <= 0.0 {
+    if r <= EPSILON {
         println!("Yarıçap pozitif olmalıdır.");
         return;
     }
@@ -167,7 +177,7 @@ fn nokta_kontrol() {
 fn teget_uzunlugu() {
     let r = read_f64("Yarıçapı girin:");
 
-    if r <= 0.0 {
+    if r <= EPSILON {
         println!("Yarıçap pozitif olmalıdır.");
         return;
     }
@@ -193,12 +203,12 @@ fn halka_alani() {
 
     let buyuk_r = read_f64("Büyük yarıçapı girin:");
 
-    if r <= 0.0 || buyuk_r <= 0.0 {
+    if r <= EPSILON || buyuk_r <= EPSILON {
         println!("Yarıçaplar pozitif olmalıdır.");
         return;
     }
 
-    if buyuk_r <= r {
+    if buyuk_r - r <= EPSILON {
         println!("Büyük yarıçap küçük yarıçaptan büyük olmalıdır.");
         return;
     }
@@ -214,6 +224,11 @@ fn halka_alani() {
 
 fn kure_hesapla() {
     let r = read_f64("Yarıçapı girin:");
+
+    if r <= EPSILON {
+        println!("Yarıçap 0'dan büyük olmalıdır.");
+        return;
+    }
 
     let alan = 4.0 * PI * r.powi(2);
     let hacim = (4.0 / 3.0) * PI * r.powi(3);
