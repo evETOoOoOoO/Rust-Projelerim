@@ -28,7 +28,7 @@ fn main() {
                 break;
             }
             _ => {
-                println!("\nLütfen 1-7 arasında bir değer veya q girin.\n");
+                println!("\nLütfen 1-9 arasında bir değer veya q girin.\n");
             }
         }
     }
@@ -103,9 +103,10 @@ fn yay_ve_dilim() {
         println!("Merkez açı 0 ile 360 derece arasında olmalıdır.");
         return;
     }
+    let rad = a.to_radians();
 
-    let cember_yay_uzunlugu = 2.0 * PI * r * a / 360.0;
-    let daire_dilimi_alani = PI * r * r * a / 360.0;
+    let cember_yay_uzunlugu = r * rad;
+    let daire_dilimi_alani = 0.5 * r.powi(2) * rad;
 
     println!("\n=== Sonuçlar ===");
     println!("Çember yay uzunluğu: {:.4}", cember_yay_uzunlugu);
