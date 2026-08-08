@@ -10,8 +10,6 @@ target/
 *.pdb
 
 # RustRover
-# JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-# be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 .idea/
 
 # VS Code
@@ -28,3 +26,10 @@ target/
 .env.local
 .env.development
 .env.production
+
+# linux-basic-scanner
+quarantine/*
+!quarantine/.gitkeep
+
+signatures/*
+!signatures/.gitkeep
