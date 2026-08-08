@@ -14,7 +14,7 @@ uygula.
 sudo pacman -S rust
 ```
 
-### Debian / Ubuntu / Linux Mint
+### Debian / Ubuntu / Linux Mint / Pardus
 ```bash
 sudo apt update
 sudo apt install cargo
