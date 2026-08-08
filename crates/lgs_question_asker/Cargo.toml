@@ -5,6 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 readme.workspace = true
+repository.workspace = true
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }

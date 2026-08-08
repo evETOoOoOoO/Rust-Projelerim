@@ -5,6 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 readme.workspace = true
+repository.workspace = true
 
 [dependencies]
 reqwest = { version = "0.13.4", features = ["json"] }
