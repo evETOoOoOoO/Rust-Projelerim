@@ -49,7 +49,7 @@ komutunu çalıştırabilirsiniz.
 
 Kurulum tamamlandıktan sonra Windows yeniden başlatma isteyebilir.
 
-WSL terminalini açtıktan sonra kullandığınız Linux dağıtımına göre yukarıdaki Rust kurulum adımlarından uygun olanı uygulayın.
+WSL terminalini açtıktan sonra kullandığınız GNU/Linux dağıtımına göre yukarıdaki Rust kurulum adımlarından uygun olanı uygulayın.
 
 Örneğin Ubuntu veya Debian tabanlı bir WSL dağıtımında:
 
@@ -65,7 +65,7 @@ git clone https://github.com/evETOoOoOoO/Rust-Projelerim.git
 cd Rust-Projelerim/crates/linux-basic-scanner
 ```
 
-> **Not:** Projeyi mümkünse WSL'nin kendi Linux dosya sistemi içerisinde (`~/` gibi) çalıştırın.
+> **Not:** Projeyi mümkünse WSL'nin kendi GNU/Linux dosya sistemi içerisinde (`~/` gibi) çalıştırın.
 >
 > Örneğin:
 >
@@ -79,11 +79,11 @@ cd Rust-Projelerim/crates/linux-basic-scanner
 > /mnt/c/...
 > ```
 >
-> altında çalıştırmaktan kaçınmak Linux dosya izinleri açısından daha tutarlı bir ortam sağlar.
+> altında çalıştırmaktan kaçınmak GNU/Linux dosya izinleri açısından daha tutarlı bir ortam sağlar.
 
 ---
 
-## 3. Projeyi Klonla (TÜM GNU/LINUX dağıtımlarda ortak)
+## 3. Projeyi Klonla (TÜM GNU/Linux dağıtımlarda ortak)
 
 ```bash
 git clone https://github.com/evETOoOoOoO/Rust-Projelerim.git
@@ -92,7 +92,7 @@ cd Rust-Projelerim/crates/linux-basic-scanner
 
 ---
 
-## 4. İzinleri ve Test Dosyasını Kur (TÜM dağıtımlarda ortak)
+## 4. İzinleri ve Test Dosyasını Kur (TÜM GNU/Linux dağıtımlarda ortak)
 
 ```bash
 # 1. İzinleri tekrar ayarla (Git bunu garanti taşımaz)
