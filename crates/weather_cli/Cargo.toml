@@ -1,5 +1,6 @@
 [package]
 name = "weather_cli"
+keywords.workspace = true
 version = "0.1.0"
 edition.workspace = true
 authors.workspace = true

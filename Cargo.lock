@@ -838,6 +838,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "pythagorean_theorem_calculator"
+version = "0.1.0"
+
+[[package]]
 name = "quadratic_solver"
 version = "0.1.0"
 
