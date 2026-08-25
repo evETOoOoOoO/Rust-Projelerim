@@ -20,6 +20,7 @@ missing_docs = "allow"
 pedantic = "warn"
 nursery = "warn"
 cargo = "warn"
+cargo_common_metadata = { level = "allow", priority = 1 }
 
 [profile.release]
 lto = "thin"
